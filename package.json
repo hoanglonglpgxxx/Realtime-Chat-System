@@ -1,22 +1,20 @@
 {
   "name": "realtime-chat-system",
   "version": "1.0.0",
-  "main": "index.js",
   "private": true,
   "workspaces": [
     "apps/*"
   ],
   "scripts": {
-    "dev:fe": "npm run dev --workspace=apps/frontend",
-    "dev:be": "npm run dev --workspace=apps/backend",
-    "dev:all": "npm-run-all --parallel dev:*"
+    "fe": "dotenv -e .env -- cross-var \"npm run dev -w frontend -- -p %FE_PORT%\"",
+    "be": "dotenv -e .env -- npm run dev -w backend",
+    "dev:all": "npm-run-all --parallel --print-label fe be"
   },
-  "author": "Mits",
-  "license": "ISC",
   "dependencies": {
-    "express": "^5.2.1",
-    "mongoose": "^8.22.0",
-    "nodemon": "^3.1.11",
-    "vite": "^7.3.1"
+    "npm-run-all": "^4.1.5"
+  },
+  "devDependencies": {
+    "cross-var": "^1.1.0",
+    "dotenv-cli": "^11.0.0"
   }
 }

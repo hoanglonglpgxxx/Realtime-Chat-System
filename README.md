@@ -86,3 +86,19 @@ Where: Triển khai trên môi trường Cloud/On-premise qua Proxy Nginx.
 Why: Chống lại các cuộc tấn công Replay và Man-in-the-Middle (MitM).
 
 How: Kết hợp HMAC, Timestamp, JWT và kiến trúc phòng thủ đa lớp.
+
+## Tầm quan trọng của việc đổi React -> Next đối với Bài thi Cao học
+
+Việc chuyển sang Next.js giúp bài thi của bạn "nâng tầm" về mặt Kiến trúc phần mềm (Domain 3 CISSP):
+
+Server-Side Rendering (SSR): Bạn có thể giải trình với thầy về việc bảo mật dữ liệu ngay từ phía Server trước khi render ra giao diện, giúp giảm thiểu các lỗ hổng rò rỉ thông tin ở phía Client.
+
+Security Middleware: Next.js cho phép bạn viết các file middleware để kiểm tra quyền truy cập (Authorization) cho từng trang một cách tập trung, thay vì phải check ở từng component như React thuần.
+
+## Lệnh cài: npm install express mongoose -w backend
+
+## Giải trình kiến trúc cho bài thi Cao học
+
+Việc sử dụng npm-run-all để quản lý Monorepo là một minh chứng cho khả năng Quản lý cấu hình (Configuration Management) trong Domain 7 của CISSP. Nó đảm bảo tính nhất quán giữa môi trường phát triển và vận hành, giúp giảm thiểu rủi ro sai sót do con người khi phải khởi động thủ công từng server riêng lẻ.
+
+Bạn có muốn tôi giúp bạn cấu hình file .env chung cho cả hai Workspace để khi bạn đổi cổng (ví dụ từ 8000 sang 3000), cả Frontend và Backend đều tự động nhận diện mà không cần sửa code không? Đây là bước cực kỳ quan trọng để hệ thống "Scale" (mở rộng) tốt hơn.
