@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "fe",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,6 +14,7 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "styled-components": "^6.3.8"
   },

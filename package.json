@@ -6,8 +6,8 @@
     "apps/*"
   ],
   "scripts": {
-    "fe": "dotenv -e .env -- cross-var \"npm run dev -w frontend -- -p %FE_PORT%\"",
-    "be": "dotenv -e .env -- npm run dev -w backend",
+    "fe": "dotenv -e .env -- cross-var \"npm run dev -w fe -- -p %FE_PORT%\"",
+    "be": "dotenv -e .env -- npm run dev -w be",
     "dev:all": "npm-run-all --parallel --print-label fe be"
   },
   "dependencies": {

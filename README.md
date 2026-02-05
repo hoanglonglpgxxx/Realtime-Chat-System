@@ -102,3 +102,5 @@ Security Middleware: Next.js cho phép bạn viết các file middleware để k
 Việc sử dụng npm-run-all để quản lý Monorepo là một minh chứng cho khả năng Quản lý cấu hình (Configuration Management) trong Domain 7 của CISSP. Nó đảm bảo tính nhất quán giữa môi trường phát triển và vận hành, giúp giảm thiểu rủi ro sai sót do con người khi phải khởi động thủ công từng server riêng lẻ.
 
 Bạn có muốn tôi giúp bạn cấu hình file .env chung cho cả hai Workspace để khi bạn đổi cổng (ví dụ từ 8000 sang 3000), cả Frontend và Backend đều tự động nhận diện mà không cần sửa code không? Đây là bước cực kỳ quan trọng để hệ thống "Scale" (mở rộng) tốt hơn.
+
+## Áp dụng mô hình BFF (Backend For Frontend). Thay vì để Browser gọi thẳng đến Express (địa chỉ thật), bạn dùng Next.js làm một cái "mặt nạ" (Proxy) ở giữa.

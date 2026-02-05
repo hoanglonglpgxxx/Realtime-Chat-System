@@ -1,25 +1,47 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // Dùng để chuyển hướng sau khi login
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import toast from "react-hot-toast";
 
 export default function LoginForm() {
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState({});
+  // Đổi email thành username để khớp với logic Backend của bạn
+  const [formData, setFormData] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Giả lập gọi API login
-    console.log("Đang đăng nhập với:", formData);
+    try {
+      // 1. Gọi đến API Route của Next.js (Proxy) thay vì Express trực tiếp
+      const response = await fetch("/api/proxy/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    setTimeout(() => {
+      const result = await response.json();
+
+      if (response.ok) {
+        // 2. Lưu thông tin User & Token vào LocalStorage để các Component khác sử dụng
+        localStorage.setItem("user", JSON.stringify(result));
+        toast.success(result.message || "Đăng nhập thành công!");
+
+        // 3. Chuyển hướng người dùng vào trang Dashboard
+        router.push("/dashboard");
+      } else {
+        // Hiển thị lỗi từ Backend trả về thông qua Proxy
+        toast.error(result.message || "Đăng nhập thất bại!");
+      }
+    } catch (err) {
+      toast.error("Không thể kết nối tới hệ thống Proxy!");
+    } finally {
       setLoading(false);
-      alert("Đăng nhập thành công! (Đây là demo)");
-    }, 1500);
+    }
   };
 
   const handleChange = (e) => {
@@ -33,15 +55,15 @@ export default function LoginForm() {
       className="flex flex-col gap-4 w-full max-w-3xl p-20 bg-white rounded-xl shadow-lg border border-gray-100"
     >
       <div className="text-center mb-4">
-        <h1 className="text-2xl font-bold text-gray-800">Đăng nhập</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Đăng nhập hệ thống</h1>
       </div>
 
       <Input
-        label="Email"
-        name="email"
-        type="email"
-        placeholder="name@company.com"
-        value={formData.email}
+        label="Tên đăng nhập"
+        name="username"
+        type="text"
+        placeholder="Nhập username của bạn"
+        value={formData.username}
         onChange={handleChange}
         required
       />
@@ -56,26 +78,9 @@ export default function LoginForm() {
         required
       />
 
-      {/* <div className="flex items-center justify-between text-sm">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" className="rounded border-gray-300" />
-          <span className="text-gray-600">Ghi nhớ</span>
-        </label>
-        <a href="#" className="text-blue-600 hover:underline">
-          Quên mật khẩu?
-        </a>
-      </div> */}
-
       <Button type="submit" isLoading={loading}>
-        Đăng nhập
+        Vào phòng Chat
       </Button>
-
-      {/* <p className="text-center text-sm text-gray-600 mt-2">
-        Chưa có tài khoản?{" "}
-        <a href="/register" className="text-blue-600 font-medium hover:underline">
-          Đăng ký ngay
-        </a>
-      </p> */}
     </form>
   );
 }

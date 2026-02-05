@@ -18,6 +18,7 @@ const connectDB = async () => {
     try {
         await mongoose.connect(
             DB, {
+            sanitizeFilter: true
             // useUnifiedTopology: true,
             // useNewUrlParser: true
         }

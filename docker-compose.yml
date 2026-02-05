@@ -1,0 +1,1 @@
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh -i "C:\Users\longlh\Downloads\google_key_openssh" hoanglonglpgxxx@34.70.65.137 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
