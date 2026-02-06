@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const connectDB = require('./config/db.config');
 const authRouter = require('./routes/auth.routes');
+const userRouter = require('./routes/user.routes');
 // const { seedingRoomTypes } = require('./test/seeding.test');
 dotenv.config({ path: '../../.env' });
 
@@ -44,8 +45,9 @@ mongoose.connection.once('open', async () => {
     }
 
     app.listen(PORT, () => {
-        console.log(`🚀 Server đang chạy tại: http://localhost:${PORT}`);
+        console.log(`Server is running at: http://localhost:${PORT}`);
     });
 });
 
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/user', userRouter);

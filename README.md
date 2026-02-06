@@ -104,3 +104,7 @@ Việc sử dụng npm-run-all để quản lý Monorepo là một minh chứng 
 Bạn có muốn tôi giúp bạn cấu hình file .env chung cho cả hai Workspace để khi bạn đổi cổng (ví dụ từ 8000 sang 3000), cả Frontend và Backend đều tự động nhận diện mà không cần sửa code không? Đây là bước cực kỳ quan trọng để hệ thống "Scale" (mở rộng) tốt hơn.
 
 ## Áp dụng mô hình BFF (Backend For Frontend). Thay vì để Browser gọi thẳng đến Express (địa chỉ thật), bạn dùng Next.js làm một cái "mặt nạ" (Proxy) ở giữa.
+
+# đổi hạ tầng sang mail hoanglongle201000 VÀO NGÀY 10/2/26
+
+# ssh -L 52717:localhost:52717 -L 56379:localhost:56379 -i "path\to\key.pem" hoanglonglpgxxx@IP -N
