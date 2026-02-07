@@ -107,4 +107,4 @@ Bạn có muốn tôi giúp bạn cấu hình file .env chung cho cả hai Works
 
 # đổi hạ tầng sang mail hoanglongle201000 VÀO NGÀY 10/2/26
 
-# ssh -L 52717:localhost:52717 -L 56379:localhost:56379 -i "path\to\key.pem" hoanglonglpgxxx@IP -N
+# ssh -v -L 53410:localhost:53410 -L 43816:localhost:43816 -i "C:\Users\DELL\Downloads\key_vm_lap" hoanglonglpgxxx@IP -N
