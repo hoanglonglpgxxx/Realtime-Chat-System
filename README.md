@@ -105,6 +105,18 @@ Bạn có muốn tôi giúp bạn cấu hình file .env chung cho cả hai Works
 
 ## Áp dụng mô hình BFF (Backend For Frontend). Thay vì để Browser gọi thẳng đến Express (địa chỉ thật), bạn dùng Next.js làm một cái "mặt nạ" (Proxy) ở giữa.
 
+# Kết nối: docker context use remote-vm
+
+1. Thiết lập dịch vụ khởi chạy tự động cùng Windows
+   Get-Service ssh-agent | Set-Service -StartupType Automatic
+
+Khởi động dịch vụ ngay lập tức
+Start-Service ssh-agent 2. # Chạy lệnh này (thay đường dẫn đến file key của bạn)
+ssh-add "C:\Users\longlh\Downloads\google_key_openssh"
+
+3. docker context use remote-vm
+   docker ps
+
 # đổi hạ tầng sang mail hoanglongle201000 VÀO NGÀY 10/2/26
 
 # ssh -v -L 53410:localhost:53410 -L 43816:localhost:43816 -i "C:\Users\DELL\Downloads\key_vm_lap" hoanglonglpgxxx@IP -N
