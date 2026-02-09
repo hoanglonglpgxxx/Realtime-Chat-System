@@ -17,35 +17,33 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Bước 2: Build & Push Backend
       - name: Build and Push Backend
         uses: docker/build-push-action@v4
         with:
-          context: ./apps/backend # Chỉ định thư mục code
-          file: ./apps/backend/Dockerfile # Chỉ định đúng file Dockerfile
+          context: ./apps/backend
+          file: ./apps/backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest # Dùng tags, không dùng image
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
 
-      # Bước 2.1: Build & Push Frontend
       - name: Build and Push Frontend
         uses: docker/build-push-action@v4
         with:
-          context: ./apps/frontend # Chỉ định thư mục code
-          file: ./apps/frontend/Dockerfile # Chỉ định đúng file Dockerfile
+          context: ./apps/frontend
+          file: ./apps/frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
-      # Bước 3: Gửi file docker-compose.yml lên VM 1
-      - name: Copy Docker Compose file to VM 1
+      # Buoc 3: Day file .env ngang cap co san tu Repo
+      - name: Copy Config files to VM 1
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "apps/docker-compose.yml"
-          target: "/home/mitsne/realtime-chat/" # Kết quả sẽ nằm tại /home/mitsne/realtime-chat/apps/
+          source: "apps/docker-compose.yml,apps/.env"
+          target: "/home/mitsne/realtime-chat/"
 
-      # Bước 4: Chạy lệnh Deploy trên VM 1
+      # Buoc 4: Deploy VM 1 - Khong dung echo
       - name: Deploy to VM 1
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -53,40 +51,21 @@ jobs:
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Tạo thư mục con cho .env
-            mkdir -p /home/mitsne/realtime-chat/apps/backend
-            mkdir -p /home/mitsne/realtime-chat/apps/frontend
-
             cd /home/mitsne/realtime-chat/apps
-
-            # TẠO FILE .env CHO DOCKER COMPOSE
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
-            echo "MONGO_USER=admin" >> .env
-            echo "MONGO_PASS=${{ secrets.DB_PASS }}" >> .env
-            echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
-
-            # TẠO FILE .env CHO TỪNG FOLDER
-            echo "DATABASE_URL=mongodb://admin:${{ secrets.DB_PASS }}@${{ secrets.VM2_INTERNAL_IP }}:27017" > backend/.env
-            echo "PORT=5000" >> backend/.env
-            echo "BE_URL=http://${{ secrets.VM1_PUBLIC_IP }}:5000" > frontend/.env
-            echo "VITE_API_URL=http://${{ secrets.VM1_PUBLIC_IP }}:5080" > frontend/.env
-
             docker compose pull
             docker compose up -d --no-build
 
-      # Buoc 5: Sync file cau hinh sang VM 2 qua ProxyJump
+      # Buoc 5: Sync Infra sang VM 2 (Lay luon .env co san trong folder)
       - name: Sync Infrastructure to VM 2
         run: |
           eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VM1_PUBLIC_IP }} >> ~/.ssh/known_hosts
-
-          # Đẩy file sang VM 2
           scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o ForwardAgent=yes -o "StrictHostKeyChecking=no" \
               -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-      # Buoc 6: Restart Docker tren VM 2
+      # Buoc 6: Restart VM 2 - Khong dung echo
       - name: Restart DBs on VM 2
         run: |
           eval $(ssh-agent -s)
