@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
 });
 
 connectDB();
-const db = require("../backend/models/index");
+const db = require("./backend/models/index");
 const Role = db.role;
 mongoose.connection.once('open', async () => {
     console.log('Connected to MongoDB');
