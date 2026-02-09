@@ -1,38 +1,21 @@
 version: '3.8'
 
 services:
-  mongodb_chat:
-    image: mongo:latest
-    container_name: mongodb_chat
+  chat_app:
+    build: .
+    container_name: chat_app
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS} 
-    ports:
-      - "53410:27017"
-    volumes:
-      - mongo_data:/data/db # Dữ liệu sẽ nằm lại trên VM ngay cả khi xóa container
-
-  redis_chat:
-    image: redis:alpine
-    container_name: redis_chat
-    volumes:
-      - /home/hoanglonglpgxxx/realtime-chat/infrastructure/redis.conf:/usr/local/etc/redis/redis.conf
-      - /home/hoanglonglpgxxx/realtime-chat/infrastructure/users.acl:/etc/redis/users.acl
-    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASS}
-    ports:
-      - "43816:6379"
+      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASS}@10.128.0.2:53410/chat
+      - REDIS_HOST=10.128.0.2
+      - REDIS_PORT=43816
+    restart: always
 
   nginx_proxy:
     image: nginx:alpine
     container_name: nginx_proxy
     ports:
-      - "8029:88"
+      - "8029:80"
     volumes:
-      # Lưu ý: Đường dẫn này sẽ trỏ tới file cấu hình trên VM
-      - /home/hoanglonglpgxxx/realtime-chat/infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
-      - mongodb_chat
-      - redis_chat
-
-volumes:
-  mongo_data:
+      - chat_app
