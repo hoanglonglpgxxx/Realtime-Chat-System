@@ -36,7 +36,17 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
-      # Buoc 3: Deploy sang VM 1 (App VM)
+      # Bước 3: Gửi file docker-compose.yml và các file cấu hình lên VM 1
+      - name: Copy Docker Compose file to VM 1
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VM1_PUBLIC_IP }}
+          username: mitsne
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "apps/docker-compose.yml" # Lấy file từ repo
+          target: "/home/mitsne/realtime-chat/" # Đưa lên VM
+
+      # Bước 4: Chạy lệnh Deploy trên VM 1
       - name: Deploy to VM 1
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -44,13 +54,18 @@ jobs:
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            mkdir -p /home/mitsne/realtime-chat/apps
             cd /home/mitsne/realtime-chat/apps
-            # Lenh nay pull image moi nhat tu Docker Hub ve
+
+            # TẠO FILE .env TẠI ĐÂY (Giải quyết câu hỏi của bạn)
+            # Bạn tạo file .env ngay trong folder code để Docker nhận diện
+            echo "DATABASE_URL=mongodb://admin:${{ secrets.DB_PASS }}@${{ secrets.VM2_INTERNAL_IP }}:27017" > .env
+            echo "PORT=3000" >> .env
+
+            # Lúc này file docker-compose.yml đã có mặt, lệnh sẽ chạy thành công
             docker compose pull
             docker compose up -d
 
-      # Buoc 4: Sync file cau hinh sang VM 2 qua ProxyJump
+      # Buoc 5: Sync file cau hinh sang VM 2 qua ProxyJump
       - name: Sync Infrastructure to VM 2
         run: |
           eval $(ssh-agent -s)
@@ -61,7 +76,7 @@ jobs:
           scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
               -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-      # Buoc 5: Restart Docker tren VM 2
+      # Buoc 6: Restart Docker tren VM 2
       - name: Restart DBs on VM 2
         run: |
           ssh -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
