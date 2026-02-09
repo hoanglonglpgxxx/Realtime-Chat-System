@@ -11,40 +11,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Debug Message
-        run: echo "Bat dau qua trinh build..."
-
-      # Buoc 1: Login Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Buoc 2: Build & Push Images
+      # Bước 2: Build & Push Backend (SỬA LỖI ĐƯỜNG DẪN DOCKERFILE)
       - name: Build and Push Backend
         uses: docker/build-push-action@v4
         with:
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest./apps/backend
+          context: ./apps/backend # Chỉ định thư mục code
+          file: ./apps/backend/Dockerfile # Chỉ định đúng file Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest # Dùng tags, không dùng image
 
+      # Bước 2.1: Build & Push Frontend
       - name: Build and Push Frontend
         uses: docker/build-push-action@v4
         with:
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
+          context: ./apps/frontend # Chỉ định thư mục code
+          file: ./apps/frontend/Dockerfile # Chỉ định đúng file Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
-      # Bước 3: Gửi file docker-compose.yml và các file cấu hình lên VM 1
+      # Bước 3: Gửi file docker-compose.yml lên VM 1
       - name: Copy Docker Compose file to VM 1
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "apps/docker-compose.yml" # Lấy file từ repo
-          target: "/home/mitsne/realtime-chat/" # Đưa lên VM
+          source: "apps/docker-compose.yml"
+          target: "/home/mitsne/realtime-chat/" # Kết quả sẽ nằm tại /home/mitsne/realtime-chat/apps/
 
       # Bước 4: Chạy lệnh Deploy trên VM 1
       - name: Deploy to VM 1
@@ -54,14 +53,17 @@ jobs:
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Tạo thư mục con cho .env
+            mkdir -p /home/mitsne/realtime-chat/apps/backend
+            mkdir -p /home/mitsne/realtime-chat/apps/frontend
+
             cd /home/mitsne/realtime-chat/apps
 
-            # TẠO FILE .env TẠI ĐÂY (Giải quyết câu hỏi của bạn)
-            # Bạn tạo file .env ngay trong folder code để Docker nhận diện
-            echo "DATABASE_URL=mongodb://admin:${{ secrets.DB_PASS }}@${{ secrets.VM2_INTERNAL_IP }}:27017" > .env
-            echo "PORT=3000" >> .env
+            # TẠO FILE .env CHO TỪNG FOLDER
+            echo "DATABASE_URL=mongodb://admin:${{ secrets.DB_PASS }}@${{ secrets.VM2_INTERNAL_IP }}:27017" > backend/.env
+            echo "PORT=3000" >> backend/.env
+            echo "VITE_API_URL=http://${{ secrets.VM1_PUBLIC_IP }}:3000" > frontend/.env
 
-            # Lúc này file docker-compose.yml đã có mặt, lệnh sẽ chạy thành công
             docker compose pull
             docker compose up -d
 
