@@ -86,21 +86,29 @@ jobs:
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Dừng ngay nếu có lỗi
+            set -e
+
             echo ">>> 1. Pulling Images on VM 1..."
-            # Tai image ve VM 1 (noi co internet)
             docker pull mongo:latest
             docker pull redis:alpine
             docker pull nginx:alpine
 
             echo ">>> 2. Saving Images to TAR..."
-            # Dong goi thanh file nén
             docker save -o infra_images.tar mongo:latest redis:alpine nginx:alpine
 
-            echo ">>> 3. Sending TAR to VM 2..."
-            # Ban sang VM 2 qua mang noi bo
-            scp -o "StrictHostKeyChecking=no" infra_images.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+            echo ">>> 3. Preparing Key for Transfer..."
+            # [QUAN TRỌNG] Tạo file key tạm trên VM 1 để nó có quyền vào VM 2
+            echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp
+            chmod 600 id_rsa_temp
 
-            # Xoa file tren VM 1 cho nhe may
+            echo ">>> 4. Sending TAR to VM 2..."
+            # Dùng key tạm (-i) để SCP sang VM 2
+            scp -i id_rsa_temp -o "StrictHostKeyChecking=no" infra_images.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+
+            echo ">>> 5. Cleaning up..."
+            # Xóa sạch dấu vết
+            rm id_rsa_temp
             rm infra_images.tar
 
       # Buoc 6: Giai nen va Chay tren VM 2 (Khong can internet)
