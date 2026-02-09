@@ -4,8 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - "apps/**" # Kích hoạt khi sửa code App
-      - "infrastructure/**" # Kích hoạt khi sửa cấu hình DB
+      - "apps/**"
+      - "infrastructure/**"
+      - ".github/workflows/**"
 
 jobs:
   # JOB 1: Build và Push Image cho VM 1 (App VM)
