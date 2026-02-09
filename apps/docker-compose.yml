@@ -5,7 +5,7 @@ services:
     image: ${DOCKERHUB_USERNAME}/chat-backend:latest
     container_name: backend_chat
     ports:
-      - "${BE_PORT}:${BE_PORT}"
+      - "${BE_PORT}:3000"
     environment:
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASS}@${VM2_INTERNAL_IP}:53410/chat_db?authSource=admin
       - REDIS_HOST=${VM2_INTERNAL_IP}
