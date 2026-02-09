@@ -1,69 +1,68 @@
-name: CI/CD Deploy to Multi-VM
+name: Deploy Chat System
 
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/**"
-      - "infrastructure/**"
-      - ".github/workflows/**"
 
 jobs:
-  # JOB 1: Build và Push Image cho VM 1 (App VM)
-  build-and-push-app:
-    if: contains(github.event.head_commit.modified, 'apps/')
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
+      - name: Debug Message
+        run: echo "GitHub da nhan lenh. Bat dau qua trinh build..."
+
+      # Buoc 1: Login Docker Hub
       - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & Push Backend
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest ./apps/backend
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
+      # Buoc 2: Build & Push Images
+      - name: Build and Push Backend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./apps/backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
 
-      - name: Build & Push Frontend
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest ./apps/frontend
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
+      - name: Build and Push Frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./apps/frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
-  # JOB 2: Deploy sang VM 1 (Dùng IP Public)
-  deploy-app-vm1:
-    needs: build-and-push-app
-    runs-on: ubuntu-latest
-    steps:
-      - name: Execute Remote SSH Commands
+      # Buoc 3: Deploy sang VM 1 (App VM)
+      - name: Deploy to VM 1
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            mkdir -p /home/mitsne/realtime-chat/apps
             cd /home/mitsne/realtime-chat/apps
+            # Lenh nay pull image moi nhat tu Docker Hub ve
             docker compose pull
             docker compose up -d
 
-  # JOB 3: Deploy Hạ tầng sang VM 2 (Dùng VM 1 làm Jump Host)
-  deploy-infra-vm2:
-    if: contains(github.event.head_commit.modified, 'infrastructure/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Sync Config to VM2 via VM1 Proxy
+      # Buoc 4: Sync file cau hinh sang VM 2 qua ProxyJump
+      - name: Sync Infrastructure to VM 2
         run: |
-          # Thiết lập SSH Agent để dùng Key
           eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
-
-          # Dùng scp qua ProxyJump để đẩy file vào VM2 không có IP Public
-          scp -o "StrictHostKeyChecking=no" -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" \
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VM1_PUBLIC_IP }} >> ~/.ssh/known_hosts
+          # Day file sang VM 2 (May khong co IP Public)
+          scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
               -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-      - name: Restart DBs on VM2
+      # Buoc 5: Restart Docker tren VM 2
+      - name: Restart DBs on VM 2
         run: |
-          # Gửi lệnh SSH xuyên qua VM1 để restart Docker trên VM2
-          ssh -o "StrictHostKeyChecking=no" -J mitsne@${{ secrets.VM1_PUBLIC_IP }} \
+          ssh -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
               mitsne@${{ secrets.VM2_INTERNAL_IP }} "cd /home/mitsne/realtime-chat/infrastructure && docker compose up -d"
