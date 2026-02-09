@@ -12,9 +12,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 
-const DB = process.env.DB_URI.replace(
-    '<PASSWORD>', encodeURIComponent(process.env.DB_PASSWORD)
-);
+const DB = process.env.MONGO_URI || process.env.DATABASE.replace('<PASSWORD>', process.env.DATABASE_PASSWORD);
 
 const connectDB = async () => {
     try {
