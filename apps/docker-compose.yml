@@ -12,6 +12,7 @@ services:
       - REDIS_HOST=${VM2_INTERNAL_IP}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASS}
+      - BE_URL=${BE_URL}
     restart: always
 
   frontend_chat:
