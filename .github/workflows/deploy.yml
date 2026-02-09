@@ -67,8 +67,9 @@ jobs:
 
             # TẠO FILE .env CHO TỪNG FOLDER
             echo "DATABASE_URL=mongodb://admin:${{ secrets.DB_PASS }}@${{ secrets.VM2_INTERNAL_IP }}:27017" > backend/.env
-            echo "PORT=3000" >> backend/.env
-            echo "VITE_API_URL=http://${{ secrets.VM1_PUBLIC_IP }}:3000" > frontend/.env
+            echo "PORT=8000" >> backend/.env
+            echo "BE_URL=http://${{ secrets.VM1_PUBLIC_IP }}:8000" > frontend/.env
+            echo "VITE_API_URL=http://${{ secrets.VM1_PUBLIC_IP }}:8050" > frontend/.env
 
             docker compose pull
             docker compose up -d --no-build
@@ -80,7 +81,12 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VM1_PUBLIC_IP }} >> ~/.ssh/known_hosts
-          # Day file sang VM 2 (May khong co IP Public)
+
+          # Lệnh SSH này sẽ xóa file cũ trên VM 2 trước khi SCP đẩy file mới
+          ssh -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
+              mitsne@${{ secrets.VM2_INTERNAL_IP }} "rm -f /home/mitsne/realtime-chat/infrastructure/redis.conf /home/mitsne/realtime-chat/infrastructure/users.acl"
+
+          # Đẩy file sang VM 2
           scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
               -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
@@ -88,4 +94,8 @@ jobs:
       - name: Restart DBs on VM 2
         run: |
           ssh -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
-              mitsne@${{ secrets.VM2_INTERNAL_IP }} "cd /home/mitsne/realtime-chat/infrastructure && docker compose up -d"
+              mitsne@${{ secrets.VM2_INTERNAL_IP }} "
+                cd /home/mitsne/realtime-chat/infrastructure && \
+                docker compose pull && \
+                docker compose up -d
+              "
