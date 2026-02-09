@@ -11,8 +11,7 @@ export const login = async (username, password) => {
     const data = await response.json();
 
     if (response.ok) {
-        // CHỈ lưu thông tin profile (tên, avatar), KHÔNG lưu token
-        // Vì token giờ đã nằm an toàn trong HttpOnly Cookie
+        // CHỈ lưu thông tin profile (tên, avatar), KHÔNG lưu token: token giờ đã nằm an toàn trong HttpOnly Cookie
         if (data.user) {
             localStorage.setItem("user_profile", JSON.stringify(data.user));
         }
