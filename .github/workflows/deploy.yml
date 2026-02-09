@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Debug Message
-        run: echo "GitHub da nhan lenh. Bat dau qua trinh build..."
+        run: echo "Bat dau qua trinh build..."
 
       # Buoc 1: Login Docker Hub
       - name: Login to Docker Hub
