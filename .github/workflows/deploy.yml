@@ -2,7 +2,9 @@ name: Deploy Chat System
 
 on:
   push:
-    branches: [main]
+    branches:
+      - "apps/**"
+      - "infrastructure/**"
 
 jobs:
   build-and-deploy:
@@ -67,9 +69,9 @@ jobs:
 
             # TẠO FILE .env CHO TỪNG FOLDER
             echo "DATABASE_URL=mongodb://admin:${{ secrets.DB_PASS }}@${{ secrets.VM2_INTERNAL_IP }}:27017" > backend/.env
-            echo "PORT=8000" >> backend/.env
-            echo "BE_URL=http://${{ secrets.VM1_PUBLIC_IP }}:8000" > frontend/.env
-            echo "VITE_API_URL=http://${{ secrets.VM1_PUBLIC_IP }}:8050" > frontend/.env
+            echo "PORT=5000" >> backend/.env
+            echo "BE_URL=http://${{ secrets.VM1_PUBLIC_IP }}:5000" > frontend/.env
+            echo "VITE_API_URL=http://${{ secrets.VM1_PUBLIC_IP }}:5080" > frontend/.env
 
             docker compose pull
             docker compose up -d --no-build
@@ -89,6 +91,8 @@ jobs:
       # Buoc 6: Restart Docker tren VM 2
       - name: Restart DBs on VM 2
         run: |
+          eval $(ssh-agent -s)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
           ssh -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o ForwardAgent=yes -o "StrictHostKeyChecking=no" \
               mitsne@${{ secrets.VM2_INTERNAL_IP }} "
                 cd /home/mitsne/realtime-chat/infrastructure && \
