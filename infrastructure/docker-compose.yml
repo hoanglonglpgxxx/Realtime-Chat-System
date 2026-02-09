@@ -1,21 +1,30 @@
 version: '3.8'
 
 services:
-  chat_app:
-    image: ${DOCKERHUB_USERNAME}/chat-backend:latest
-    container_name: chat_app
-    environment:
-      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASS}@10.128.0.2:53410/chat
-      - REDIS_HOST=10.128.0.2
-      - REDIS_PORT=43816
+  # 1. MongoDB Service
+  mongodb_chat:
+    image: mongo:latest
+    container_name: mongodb_chat
     restart: always
-
-  nginx_proxy:
-    image: nginx:alpine
-    container_name: nginx_proxy
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}
     ports:
-      - "8029:80"
+      - "${PORT_MONGODB}:27017"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-    depends_on:
-      - chat_app
+      - mongo_data:/data/db
+
+  # 2. Redis Service
+  redis_chat:
+    image: redis:alpine
+    container_name: redis_chat
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASS}
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mongo_data:
+  redis_data:
