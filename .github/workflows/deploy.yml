@@ -59,13 +59,19 @@ jobs:
 
             cd /home/mitsne/realtime-chat/apps
 
+            # TẠO FILE .env CHO DOCKER COMPOSE
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+            echo "MONGO_USER=admin" >> .env
+            echo "MONGO_PASS=${{ secrets.DB_PASS }}" >> .env
+            echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
+
             # TẠO FILE .env CHO TỪNG FOLDER
             echo "DATABASE_URL=mongodb://admin:${{ secrets.DB_PASS }}@${{ secrets.VM2_INTERNAL_IP }}:27017" > backend/.env
             echo "PORT=3000" >> backend/.env
             echo "VITE_API_URL=http://${{ secrets.VM1_PUBLIC_IP }}:3000" > frontend/.env
 
             docker compose pull
-            docker compose up -d
+            docker compose up -d --no-build
 
       # Buoc 5: Sync file cau hinh sang VM 2 qua ProxyJump
       - name: Sync Infrastructure to VM 2

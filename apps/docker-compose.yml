@@ -1,11 +1,7 @@
-version: '3.8'
-
 services:
   # Service Backend (Node.js)
   backend_chat:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME}/chat-backend:latest
     container_name: backend_chat
     environment:
       - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASS}@10.128.0.2:53410/chat_db?authSource=admin
@@ -16,9 +12,7 @@ services:
 
   # Service Frontend (Next.js/React)
   frontend_chat:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME}/chat-frontend:latest
     container_name: frontend_chat
     ports:
       - "3000:3000"
