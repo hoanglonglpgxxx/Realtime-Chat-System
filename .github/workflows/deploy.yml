@@ -38,7 +38,7 @@ jobs:
 
       # Buoc 3: Deploy sang VM 1 (App VM)
       - name: Deploy to VM 1
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
