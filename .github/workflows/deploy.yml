@@ -84,7 +84,7 @@ jobs:
 
           # Lệnh SSH này sẽ xóa file cũ trên VM 2 trước khi SCP đẩy file mới
           ssh -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
-              mitsne@${{ secrets.VM2_INTERNAL_IP }} "rm -f /home/mitsne/realtime-chat/infrastructure/redis.conf /home/mitsne/realtime-chat/infrastructure/users.acl"
+              mitsne@${{ secrets.VM2_INTERNAL_IP }} "rm -rf /home/mitsne/realtime-chat/infrastructure/redis.conf /home/mitsne/realtime-chat/infrastructure/users.acl"
 
           # Đẩy file sang VM 2
           scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o "StrictHostKeyChecking=no" \
