@@ -83,6 +83,12 @@ jobs:
           ssh -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o ForwardAgent=yes -o "StrictHostKeyChecking=no" \
               mitsne@${{ secrets.VM2_INTERNAL_IP }} "
                 cd /home/mitsne/realtime-chat/infrastructure && \
+                
+                # Nạp đúng biến khởi tạo DB cho Infra
+                echo 'MONGO_USER=${{ secrets.MONGO_USER }}' > .env && \
+                echo 'MONGO_PASS=${{ secrets.MONGO_PASS }}' >> .env && \
+                echo 'REDIS_PASS=${{ secrets.REDIS_PASS }}' >> .env && \
+                
                 docker compose pull && \
                 docker compose up -d
               "
