@@ -8,8 +8,24 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
+      # 1. Lấy code về
       - name: Checkout code
         uses: actions/checkout@v3
+
+      # 2. [QUAN TRỌNG] Kiểm tra xem folder nào thay đổi để tránh build thừa
+      - name: Check for changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'apps/backend/**'
+            frontend:
+              - 'apps/frontend/**'
+            infra:
+              - 'infrastructure/**'
+            compose:
+              - 'apps/docker-compose.yml'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -20,30 +36,33 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 3. Build Backend (Chỉ chạy khi folder backend thay đổi)
       - name: Build and Push Backend
+        if: steps.changes.outputs.backend == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./apps/backend
           file: ./apps/backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
-          #Cache settings
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # 4. Build Frontend (Chỉ chạy khi folder frontend thay đổi)
       - name: Build and Push Frontend
+        if: steps.changes.outputs.frontend == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
-          #Cache settings
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Buoc 3: Day file docker-compose sang VM 1
+      # 5. Copy file Docker Compose sang VM 1 (Chạy khi có sửa đổi frontend/backend hoặc compose)
       - name: Copy Config files to VM 1
+        if: steps.changes.outputs.frontend == 'true' || steps.changes.outputs.backend == 'true' || steps.changes.outputs.compose == 'true'
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
@@ -52,7 +71,7 @@ jobs:
           source: "apps/docker-compose.yml"
           target: "/home/mitsne/realtime-chat/"
 
-      # Buoc 4: Deploy VM 1 (Backend & Frontend)
+      # 6. Deploy VM 1 (Frontend & Backend) - Bước này sửa lỗi BE_URL
       - name: Deploy to VM 1
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -62,7 +81,8 @@ jobs:
           script: |
             cd /home/mitsne/realtime-chat/apps
 
-            # Tao .env cho App (VM 1 co mang nen ke no)
+            # --- TẠO FILE .ENV (QUAN TRỌNG NHẤT) ---
+            echo "Đang tạo file .env..."
             echo "BE_PORT=${{ secrets.BE_PORT }}" > .env
             echo "FE_PORT=${{ secrets.FE_PORT }}" >> .env
             echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
@@ -72,60 +92,55 @@ jobs:
             echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
             echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+            echo "BE_URL=${{ secrets.BE_URL }}" >> .env
 
+            echo "Đang khởi động lại Docker Compose..."
             docker compose pull
-            docker compose up -d --no-build --remove-orphans
+            docker compose up -d --remove-orphans
             docker image prune -f
 
-      # Buoc 5: Sync file cau hinh Infra sang VM 2
+      # 7. Sync Config sang VM 2 (Chỉ chạy khi sửa folder Infrastructure)
       - name: Sync Infrastructure to VM 2
+        if: steps.changes.outputs.infra == 'true'
         run: |
           eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VM1_PUBLIC_IP }} >> ~/.ssh/known_hosts
 
-          # Day file config sang VM 2 (redis.conf, users.acl...)
           scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o ForwardAgent=yes -o "StrictHostKeyChecking=no" \
               -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-      # [SỬA] Bước 5.5: Tải VÀ Đóng gói cả Backend sang VM 2
-      - name: Bridge Images from VM 1 to VM 2
+      # 8. Bridge Images sang VM 2 (Chỉ chạy khi Backend thay đổi - Tối ưu tốc độ)
+      - name: Bridge Backend Image to VM 2
+        if: steps.changes.outputs.backend == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e # Dừng ngay nếu lỗi
-
-            echo ">>> 1. Pulling Images on VM 1..."
-            docker pull mongo:latest
-            docker pull redis:alpine
-            docker pull nginx:alpine
-            # [QUAN TRỌNG] Phải tải image Backend về VM 1 trước
+            set -e 
+            echo ">>> 1. Pulling Backend Image on VM 1..."
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
 
-            echo ">>> 2. Saving Images to TAR..."
-            # [QUAN TRỌNG] Thêm backend vào lệnh save
-            docker save -o infra_images.tar \
-                mongo:latest \
-                redis:alpine \
-                nginx:alpine \
-                ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
+            echo ">>> 2. Saving Backend Image..."
+            # Chỉ save backend, bỏ qua mongo/redis/nginx để tiết kiệm thời gian
+            docker save -o backend_image.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
 
-            echo ">>> 3. Preparing Key..."
+            echo ">>> 3. Preparing SSH Key..."
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp
             chmod 600 id_rsa_temp
 
             echo ">>> 4. Sending TAR to VM 2..."
-            scp -i id_rsa_temp -o "StrictHostKeyChecking=no" infra_images.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+            scp -i id_rsa_temp -o "StrictHostKeyChecking=no" backend_image.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-            echo ">>> 5. Cleaning up..."
-            rm id_rsa_temp infra_images.tar
+            echo ">>> 5. Cleanup..."
+            rm id_rsa_temp backend_image.tar
 
-      # Buoc 6: Giai nen va Chay tren VM 2 (Khong can internet)
-      - name: Restart DBs on VM 2
+      # 9. Restart VM 2
+      - name: Restart Services on VM 2
+        if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.infra == 'true'
         run: |
           eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
@@ -133,12 +148,14 @@ jobs:
               mitsne@${{ secrets.VM2_INTERNAL_IP }} "
                 cd /home/mitsne/realtime-chat/infrastructure && \
                 
-                # Giai nen Image
-                echo '>>> 4. Loading Images...' && \
-                docker load -i infra_images.tar && \
-                rm infra_images.tar && \
+                # Nếu có file ảnh mới thì load
+                if [ -f backend_image.tar ]; then
+                  echo '>>> Loading Backend Image...'
+                  docker load -i backend_image.tar
+                  rm backend_image.tar
+                fi
                 
-                # Tao .env
+                # Tạo lại .env trên VM 2 cho chắc ăn
                 echo 'DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}' > .env && \
                 echo 'MONGO_USER=${{ secrets.MONGO_USER }}' >> .env && \
                 echo 'MONGO_PASS=${{ secrets.MONGO_PASS }}' >> .env && \
@@ -148,7 +165,6 @@ jobs:
                 echo 'BE_URL=${{ secrets.BE_URL }}' >> .env && \
                 echo 'PORT_MONGODB=${{ secrets.PORT_MONGODB }}' >> .env && \
                 
-                # Chi Up, khong Pull
-                echo '>>> 5. Starting Services...' && \
+                echo '>>> Restarting Containers...' && \
                 docker compose up -d --remove-orphans
               "
