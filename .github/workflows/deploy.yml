@@ -61,6 +61,7 @@ jobs:
             echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> .env
             echo "MONGO_PASS=${{ secrets.MONGO_PASS }}" >> .env
             echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
+            echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
 
             docker compose pull
@@ -132,6 +133,7 @@ jobs:
                 echo 'MONGO_USER=${{ secrets.MONGO_USER }}' >> .env && \
                 echo 'MONGO_PASS=${{ secrets.MONGO_PASS }}' >> .env && \
                 echo 'REDIS_PASS=${{ secrets.REDIS_PASS }}' >> .env && \
+                echo 'NODE_ENV=${{ secrets.NODE_ENV }}' >> .env && \
                 echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env && \
                 echo 'PORT_MONGODB=${{ secrets.PORT_MONGODB }}' >> .env && \
                 
