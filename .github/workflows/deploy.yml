@@ -25,14 +25,14 @@ jobs:
       - name: Build and Push Backend
         uses: docker/build-push-action@v4
         with:
-          context: ./apps/backend
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest./apps/backend
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
 
       - name: Build and Push Frontend
         uses: docker/build-push-action@v4
         with:
-          context: ./apps/frontend
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
