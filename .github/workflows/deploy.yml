@@ -24,6 +24,8 @@ jobs:
           file: ./apps/backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and Push Frontend
         uses: docker/build-push-action@v4
@@ -32,6 +34,8 @@ jobs:
           file: ./apps/frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # Buoc 3: Day file docker-compose sang VM 1
       - name: Copy Config files to VM 1
@@ -65,7 +69,8 @@ jobs:
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
 
             docker compose pull
-            docker compose up -d --no-build
+            docker compose up -d --no-build --remove-orphans
+            docker image prune -f
 
       # Buoc 5: Sync file cau hinh Infra sang VM 2
       - name: Sync Infrastructure to VM 2
@@ -139,5 +144,5 @@ jobs:
                 
                 # Chi Up, khong Pull
                 echo '>>> 5. Starting Services...' && \
-                docker compose up -d
+                docker compose up -d --remove-orphans
               "
