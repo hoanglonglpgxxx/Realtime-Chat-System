@@ -40,7 +40,7 @@ jobs:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "apps/docker-compose.yml,apps/.env"
+          source: "apps/docker-compose.yml"
           target: "/home/mitsne/realtime-chat/"
 
       # Buoc 4: Deploy VM 1 - Khong dung echo
@@ -52,6 +52,16 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/mitsne/realtime-chat/apps
+
+            echo "BE_PORT=${{ secrets.BE_PORT }}" > .env
+            echo "FE_PORT=${{ secrets.FE_PORT }}" >> .env
+            echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
+            echo "VM2_INTERNAL_IP=${{ secrets.VM2_INTERNAL_IP }}" >> .env
+            echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> .env
+            echo "MONGO_PASS=${{ secrets.MONGO_PASS }}" >> .env
+            echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+
             docker compose pull
             docker compose up -d --no-build
 
