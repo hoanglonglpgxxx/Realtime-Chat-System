@@ -120,3 +120,5 @@ ssh-add "C:\Users\longlh\Downloads\google_key_openssh"
 # đổi hạ tầng sang mail hoanglongle201000 VÀO NGÀY 10/2/26
 
 # ssh -v -L 53410:localhost:53410 -L 43816:localhost:43816 -i "C:\Users\DELL\Downloads\key_vm_lap" hoanglonglpgxxx@IP -N
+
+# Kiến trúc phòng thủ chiều sâu, việc loại bỏ source code khỏi server sản phẩm là một tiêu chuẩn bắt buộc để giảm thiểu bề mặt tấn công.

@@ -1,0 +1,68 @@
+name: CI/CD Deploy to Multi-VM
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**" # Kích hoạt khi sửa code App
+      - "infrastructure/**" # Kích hoạt khi sửa cấu hình DB
+
+jobs:
+  # JOB 1: Build và Push Image cho VM 1 (App VM)
+  build-and-push-app:
+    if: contains(github.event.head_commit.modified, 'apps/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build & Push Backend
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest ./apps/backend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
+
+      - name: Build & Push Frontend
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest ./apps/frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
+
+  # JOB 2: Deploy sang VM 1 (Dùng IP Public)
+  deploy-app-vm1:
+    needs: build-and-push-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute Remote SSH Commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM1_PUBLIC_IP }}
+          username: mitsne
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/mitsne/realtime-chat/apps
+            docker compose pull
+            docker compose up -d
+
+  # JOB 3: Deploy Hạ tầng sang VM 2 (Dùng VM 1 làm Jump Host)
+  deploy-infra-vm2:
+    if: contains(github.event.head_commit.modified, 'infrastructure/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Sync Config to VM2 via VM1 Proxy
+        run: |
+          # Thiết lập SSH Agent để dùng Key
+          eval $(ssh-agent -s)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
+
+          # Dùng scp qua ProxyJump để đẩy file vào VM2 không có IP Public
+          scp -o "StrictHostKeyChecking=no" -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" \
+              -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+
+      - name: Restart DBs on VM2
+        run: |
+          # Gửi lệnh SSH xuyên qua VM1 để restart Docker trên VM2
+          ssh -o "StrictHostKeyChecking=no" -J mitsne@${{ secrets.VM1_PUBLIC_IP }} \
+              mitsne@${{ secrets.VM2_INTERNAL_IP }} "cd /home/mitsne/realtime-chat/infrastructure && docker compose up -d"
