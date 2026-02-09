@@ -40,6 +40,12 @@ export async function POST(request) {
 
         return response;
     } catch (error) {
+        console.error("========================================");
+        console.error("❌ LỖI GỌI API BACKEND:");
+        console.error("👉 URL:", `${process.env.BE_URL}/api/...`); // In ra để xem biến môi trường có đúng không
+        console.error("👉 Chi tiết lỗi:", error.message);
+        if (error.cause) console.error("👉 Nguyên nhân sâu xa:", error.cause);
+        console.error("========================================");
         return NextResponse.json({ message: "Lỗi Proxy" }, { status: 500 });
     }
 }
