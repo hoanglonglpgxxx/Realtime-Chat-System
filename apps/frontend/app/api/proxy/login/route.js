@@ -1,7 +1,8 @@
-const dotenv = require('dotenv');
 import { NextResponse } from 'next/server';
 
-dotenv.config({ path: '../../.env' });
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config({ path: '../../.env' });
+}
 
 export async function POST(request) {
     try {

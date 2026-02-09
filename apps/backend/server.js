@@ -1,13 +1,14 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const connectDB = require('./config/db.config');
 const authRouter = require('./routes/auth.routes');
 const userRouter = require('./routes/user.routes');
 // const { seedingRoomTypes } = require('./test/seeding.test');
-dotenv.config({ path: '../../.env' });
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config({ path: '../../.env' });
+}
 
 const app = express();
 const PORT = process.env.BE_PORT || 5000;

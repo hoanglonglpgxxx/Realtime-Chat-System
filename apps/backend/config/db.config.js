@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 
 //catch event uncaughtException, xử lý cho synchro code, khi có lỗi sẽ trigger event này
 process.on('uncaughtException', err => {
@@ -8,7 +7,10 @@ process.on('uncaughtException', err => {
     process.exit(1);
 });
 
-dotenv.config({ path: '../../.env' });
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config({ path: '../../.env' });
+}
+
 
 const DB = process.env.DB_URI.replace(
     '<PASSWORD>', encodeURIComponent(process.env.DB_PASSWORD)

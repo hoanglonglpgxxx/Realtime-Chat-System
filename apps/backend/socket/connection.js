@@ -6,8 +6,9 @@ const socketio = require('socket.io');
 const { createClient } = require('redis');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const { debugLog } = require('./utils.js');
-const dotenv = require('dotenv');
-dotenv.config({ path: '../../../.env' });
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config({ path: '../../.env' });
+}
 
 
 async function initializeServer() {
