@@ -17,7 +17,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Bước 2: Build & Push Backend (SỬA LỖI ĐƯỜNG DẪN DOCKERFILE)
+      # Bước 2: Build & Push Backend
       - name: Build and Push Backend
         uses: docker/build-push-action@v4
         with:
