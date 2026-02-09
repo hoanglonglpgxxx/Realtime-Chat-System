@@ -78,7 +78,7 @@ jobs:
           scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o ForwardAgent=yes -o "StrictHostKeyChecking=no" \
               -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-      # [MOI] Buoc 5.5: Dung VM 1 lam "nguoi van chuyen" Image sang VM 2
+      # [SỬA] Bước 5.5: Tải VÀ Đóng gói cả Backend sang VM 2
       - name: Bridge Images from VM 1 to VM 2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -86,30 +86,32 @@ jobs:
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Dừng ngay nếu có lỗi
-            set -e
+            set -e # Dừng ngay nếu lỗi
 
             echo ">>> 1. Pulling Images on VM 1..."
             docker pull mongo:latest
             docker pull redis:alpine
             docker pull nginx:alpine
+            # [QUAN TRỌNG] Phải tải image Backend về VM 1 trước
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
 
             echo ">>> 2. Saving Images to TAR..."
-            docker save -o infra_images.tar mongo:latest redis:alpine nginx:alpine
+            # [QUAN TRỌNG] Thêm backend vào lệnh save
+            docker save -o infra_images.tar \
+                mongo:latest \
+                redis:alpine \
+                nginx:alpine \
+                ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
 
-            echo ">>> 3. Preparing Key for Transfer..."
-            # [QUAN TRỌNG] Tạo file key tạm trên VM 1 để nó có quyền vào VM 2
+            echo ">>> 3. Preparing Key..."
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp
             chmod 600 id_rsa_temp
 
             echo ">>> 4. Sending TAR to VM 2..."
-            # Dùng key tạm (-i) để SCP sang VM 2
             scp -i id_rsa_temp -o "StrictHostKeyChecking=no" infra_images.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
             echo ">>> 5. Cleaning up..."
-            # Xóa sạch dấu vết
-            rm id_rsa_temp
-            rm infra_images.tar
+            rm id_rsa_temp infra_images.tar
 
       # Buoc 6: Giai nen va Chay tren VM 2 (Khong can internet)
       - name: Restart DBs on VM 2
