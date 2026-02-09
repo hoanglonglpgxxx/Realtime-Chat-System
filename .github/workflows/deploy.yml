@@ -33,7 +33,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
-      # Buoc 3: Day file .env ngang cap co san tu Repo
+      # Buoc 3: Day file docker-compose sang VM 1
       - name: Copy Config files to VM 1
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -43,7 +43,7 @@ jobs:
           source: "apps/docker-compose.yml"
           target: "/home/mitsne/realtime-chat/"
 
-      # Buoc 4: Deploy VM 1 - Khong dung echo
+      # Buoc 4: Deploy VM 1 (Backend & Frontend)
       - name: Deploy to VM 1
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -53,6 +53,7 @@ jobs:
           script: |
             cd /home/mitsne/realtime-chat/apps
 
+            # Tao .env cho App (VM 1 co mang nen ke no)
             echo "BE_PORT=${{ secrets.BE_PORT }}" > .env
             echo "FE_PORT=${{ secrets.FE_PORT }}" >> .env
             echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
@@ -65,17 +66,44 @@ jobs:
             docker compose pull
             docker compose up -d --no-build
 
-      # Buoc 5: Sync Infra sang VM 2 (Lay luon .env co san trong folder)
+      # Buoc 5: Sync file cau hinh Infra sang VM 2
       - name: Sync Infrastructure to VM 2
         run: |
           eval $(ssh-agent -s)
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VM1_PUBLIC_IP }} >> ~/.ssh/known_hosts
+
+          # Day file config sang VM 2 (redis.conf, users.acl...)
           scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o ForwardAgent=yes -o "StrictHostKeyChecking=no" \
               -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-      # Buoc 6: Restart VM 2 - Khong dung echo
+      # [MOI] Buoc 5.5: Dung VM 1 lam "nguoi van chuyen" Image sang VM 2
+      - name: Bridge Images from VM 1 to VM 2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM1_PUBLIC_IP }}
+          username: mitsne
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ">>> 1. Pulling Images on VM 1..."
+            # Tai image ve VM 1 (noi co internet)
+            docker pull mongo:latest
+            docker pull redis:alpine
+            docker pull nginx:alpine
+
+            echo ">>> 2. Saving Images to TAR..."
+            # Dong goi thanh file nén
+            docker save -o infra_images.tar mongo:latest redis:alpine nginx:alpine
+
+            echo ">>> 3. Sending TAR to VM 2..."
+            # Ban sang VM 2 qua mang noi bo
+            scp -o "StrictHostKeyChecking=no" infra_images.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+
+            # Xoa file tren VM 1 cho nhe may
+            rm infra_images.tar
+
+      # Buoc 6: Giai nen va Chay tren VM 2 (Khong can internet)
       - name: Restart DBs on VM 2
         run: |
           eval $(ssh-agent -s)
@@ -84,11 +112,17 @@ jobs:
               mitsne@${{ secrets.VM2_INTERNAL_IP }} "
                 cd /home/mitsne/realtime-chat/infrastructure && \
                 
-                # Nạp đúng biến khởi tạo DB cho Infra
+                # Giai nen Image
+                echo '>>> 4. Loading Images...' && \
+                docker load -i infra_images.tar && \
+                rm infra_images.tar && \
+                
+                # Tao .env
                 echo 'MONGO_USER=${{ secrets.MONGO_USER }}' > .env && \
                 echo 'MONGO_PASS=${{ secrets.MONGO_PASS }}' >> .env && \
                 echo 'REDIS_PASS=${{ secrets.REDIS_PASS }}' >> .env && \
                 
-                docker compose pull && \
+                # Chi Up, khong Pull
+                echo '>>> 5. Starting Services...' && \
                 docker compose up -d
               "
