@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   chat_app:
-    image: ${secrets.DOCKERHUB_USERNAME}/chat-backend:latest
+    image: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
     container_name: chat_app
     environment:
-      - MONGO_URI=mongodb://${secrets.MONGO_USER}:${secrets.MONGO_PASS}@10.128.0.2:53410/chat
+      - MONGO_URI=mongodb://${{ secrets.MONGO_USER }}:${{ secrets.MONGO_PASS }}@10.128.0.2:53410/chat
       - REDIS_HOST=10.128.0.2
       - REDIS_PORT=43816
     restart: always
