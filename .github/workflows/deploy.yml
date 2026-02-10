@@ -12,17 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Check for changes
-        uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            backend: ['apps/backend/**']
-            frontend: ['apps/frontend/**']
-            socket: ['apps/socket-bridge/**']
-            infra: ['infrastructure/**']
-            compose: ['apps/docker-compose.yml']
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -32,9 +21,8 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # --- 1. BUILD STAGE ---
+      # --- 1. BUILD STAGE (LUÔN CHẠY) ---
       - name: Build and Push Backend
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.backend == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./apps/backend
@@ -42,7 +30,6 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
 
       - name: Build and Push Frontend
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.frontend == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./apps/frontend
@@ -50,14 +37,13 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
       - name: Build and Push Socket Bridge
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.socket == 'true'
         uses: docker/build-push-action@v4
         with:
           context: ./apps/socket-bridge
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
 
-      # --- 2. SYNC FILES TO VM 1 (Trạm trung chuyển) ---
+      # --- 2. SYNC FILES TO VM 1 ---
       - name: Sync Infrastructure to VM 1
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -67,7 +53,7 @@ jobs:
           source: "infrastructure/*,apps/docker-compose.yml"
           target: "/home/mitsne/realtime-chat/sync_tmp"
 
-      # --- 3. DEPLOY VM 1 (API & UI) ---
+      # --- 3. DEPLOY VM 1 ---
       - name: Deploy to VM 1
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -78,6 +64,7 @@ jobs:
             cd /home/mitsne/realtime-chat/apps
             cp /home/mitsne/realtime-chat/sync_tmp/apps/docker-compose.yml .
 
+            # Ghi file .env an toàn
             cat <<'EOF' > .env
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             BE_PORT=${{ secrets.BE_PORT }}
@@ -95,7 +82,7 @@ jobs:
             docker compose pull
             docker compose up -d --remove-orphans
 
-      # --- 4. DEPLOY VM 2 (Database & Socket Bridge) ---
+      # --- 4. DEPLOY VM 2 (CẦU NHẢY JUMP-HOP) ---
       - name: Deploy to VM 2 via VM 1
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -106,26 +93,21 @@ jobs:
             set -e
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp && chmod 600 id_rsa_temp
 
-            # A. Dùng SCP -r thay cho RSYNC để không cần cài thêm package
-            echo ">>> Đang đẩy infrastructure sang VM 2..."
+            # Tạo thư mục trên VM 2
             ssh -i id_rsa_temp -o StrictHostKeyChecking=no mitsne@${{ secrets.VM2_INTERNAL_IP }} "mkdir -p /home/mitsne/realtime-chat/infrastructure"
 
-            scp -i id_rsa_temp -o StrictHostKeyChecking=no -r \
-              /home/mitsne/realtime-chat/sync_tmp/infrastructure/* \
-              mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+            # Chép config sang VM 2
+            scp -i id_rsa_temp -o StrictHostKeyChecking=no -r /home/mitsne/realtime-chat/sync_tmp/infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-            # B. Bridge Image Socket Bridge sang VM 2
-            echo ">>> Đang chuyển Image Socket Bridge sang VM 2..."
+            # Bridge Image
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
             docker save -o socket_bridge.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
             scp -i id_rsa_temp -o "StrictHostKeyChecking=no" socket_bridge.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-            # C. SSH sang VM 2 thực thi
+            # Thực thi tại VM 2
             ssh -i id_rsa_temp -o "StrictHostKeyChecking=no" mitsne@${{ secrets.VM2_INTERNAL_IP }} "
                 cd /home/mitsne/realtime-chat/infrastructure
-                if [ -f socket_bridge.tar ]; then
-                  docker load -i socket_bridge.tar && rm socket_bridge.tar
-                fi
+                if [ -f socket_bridge.tar ]; then docker load -i socket_bridge.tar && rm socket_bridge.tar; fi
                 
                 cat <<'EOF' > .env
                 DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
@@ -140,6 +122,5 @@ jobs:
                 
                 docker compose up -d --remove-orphans
             "
-            # Dọn dẹp
             rm id_rsa_temp socket_bridge.tar
             rm -rf /home/mitsne/realtime-chat/sync_tmp

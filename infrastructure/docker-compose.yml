@@ -35,7 +35,6 @@ services:
       - REDIS_HOST=redis_chat
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASS}
-      - APP_SECRET_KEY=${APP_SECRET_KEY}
     ports:
       - "5000:5000" # Mở cổng 5000 để Nginx VM 1 gọi vào qua IP nội bộ
     depends_on:
