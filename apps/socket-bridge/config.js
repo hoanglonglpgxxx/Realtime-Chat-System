@@ -9,7 +9,7 @@ const config = {
     secretKey: process.env.SECRET_KEY_PATH || "", // Đường dẫn file chứa Key bảo mật
     port: process.env.PORT || 3000,
     // Channel Redis dùng để giao tiếp giữa Express API và Socket Server
-    redisChannel: 'vsystem_chat_event'
+    redisChannel: 'mits_chat_event'
 };
 
 // --- Validate Config ---
@@ -21,7 +21,7 @@ if (!config.redisHost) {
 }
 
 // --- Load Secret Key (Dùng để verify message từ Express API) ---
-let APP_SECRET_KEY = 'DEFAULT_SECRET_KEY_DEV'; // Fallback cho dev
+let APP_SECRET_KEY = 'DEFAULT_SECRET_KEY_DEV';
 try {
     if (config.secretKey && fs.existsSync(config.secretKey)) {
         APP_SECRET_KEY = fs.readFileSync(config.secretKey, 'utf8').trim();

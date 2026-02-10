@@ -88,6 +88,7 @@ jobs:
             echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
             echo 'DB_URI=${{ secrets.DB_URI }}' >> .env
             echo "BE_URL=${{ secrets.BE_URL }}" >> .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
 
             docker compose pull
             docker compose up -d --remove-orphans
