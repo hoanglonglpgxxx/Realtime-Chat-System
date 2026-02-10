@@ -21,20 +21,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # --- 1. BUILD STAGE (LUÔN CHẠY) ---
+      # 1. Build & Push (Giữ nguyên - Đã ép build khi push)
       - name: Build and Push Backend
         uses: docker/build-push-action@v4
         with:
           context: ./apps/backend
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
-
-      - name: Build and Push Frontend
-        uses: docker/build-push-action@v4
-        with:
-          context: ./apps/frontend
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
       - name: Build and Push Socket Bridge
         uses: docker/build-push-action@v4
@@ -43,17 +36,17 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
 
-      # --- 2. SYNC FILES TO VM 1 ---
+      # 2. Sync Infra sang VM 1 (Sửa đường dẫn source để chuẩn folder)
       - name: Sync Infrastructure to VM 1
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "infrastructure/*,apps/docker-compose.yml"
+          source: "infrastructure,apps/docker-compose.yml" # Không dùng dấu * ở đây
           target: "/home/mitsne/realtime-chat/sync_tmp"
 
-      # --- 3. DEPLOY VM 1 ---
+      # 3. Deploy VM 1
       - name: Deploy to VM 1
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -64,25 +57,20 @@ jobs:
             cd /home/mitsne/realtime-chat/apps
             cp /home/mitsne/realtime-chat/sync_tmp/apps/docker-compose.yml .
 
-            # Ghi file .env an toàn
             cat <<'EOF' > .env
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             BE_PORT=${{ secrets.BE_PORT }}
             FE_PORT=${{ secrets.FE_PORT }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
             VM2_INTERNAL_IP=${{ secrets.VM2_INTERNAL_IP }}
-            MONGO_USER=${{ secrets.MONGO_USER }}
-            MONGO_PASS=${{ secrets.MONGO_PASS }}
             REDIS_PASS=${{ secrets.REDIS_PASS }}
-            NODE_ENV=${{ secrets.NODE_ENV }}
             DB_URI=${{ secrets.DB_URI }}
-            BE_URL=${{ secrets.BE_URL }}
             EOF
 
             docker compose pull
             docker compose up -d --remove-orphans
 
-      # --- 4. DEPLOY VM 2 (CẦU NHẢY JUMP-HOP) ---
+      # 4. Deploy VM 2 (Sửa lỗi đường dẫn SCP)
       - name: Deploy to VM 2 via VM 1
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -93,18 +81,18 @@ jobs:
             set -e
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp && chmod 600 id_rsa_temp
 
-            # Tạo thư mục trên VM 2
+            # Tạo folder đích
             ssh -i id_rsa_temp -o StrictHostKeyChecking=no mitsne@${{ secrets.VM2_INTERNAL_IP }} "mkdir -p /home/mitsne/realtime-chat/infrastructure"
 
-            # Chép config sang VM 2
+            # ĐÚNG ĐƯỜNG DẪN: Sync folder infrastructure mới nhất sang VM 2
             scp -i id_rsa_temp -o StrictHostKeyChecking=no -r /home/mitsne/realtime-chat/sync_tmp/infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-            # Bridge Image
+            # Chuyển Image
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
             docker save -o socket_bridge.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
             scp -i id_rsa_temp -o "StrictHostKeyChecking=no" socket_bridge.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-            # Thực thi tại VM 2
+            # Restart VM 2
             ssh -i id_rsa_temp -o "StrictHostKeyChecking=no" mitsne@${{ secrets.VM2_INTERNAL_IP }} "
                 cd /home/mitsne/realtime-chat/infrastructure
                 if [ -f socket_bridge.tar ]; then docker load -i socket_bridge.tar && rm socket_bridge.tar; fi
@@ -120,7 +108,8 @@ jobs:
                 PORT_MONGODB=${{ secrets.PORT_MONGODB }}
                 EOF
                 
-                docker compose up -d --remove-orphans
+                # Ép tái tạo container để nhận code/env mới
+                docker compose up -d --force-recreate --remove-orphans
             "
             rm id_rsa_temp socket_bridge.tar
             rm -rf /home/mitsne/realtime-chat/sync_tmp

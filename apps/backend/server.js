@@ -6,7 +6,6 @@ const connectDB = require('./config/db.config');
 const authRouter = require('./routes/auth.routes');
 const userRouter = require('./routes/user.routes');
 // const { seedingRoomTypes } = require('./test/seeding.test');
-const { initializeSocket } = require('./socket/index');
 
 
 if (process.env.NODE_ENV !== 'production') {
@@ -40,7 +39,6 @@ connectDB();
 const db = require("./models/index");
 const Role = db.role;
 
-// initializeSocket(httpServer);
 
 mongoose.set('debug', true);
 mongoose.connection.once('open', async () => {
