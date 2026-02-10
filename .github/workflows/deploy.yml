@@ -3,7 +3,7 @@ name: Deploy Chat System
 on:
   push:
     branches: ["main"]
-  workflow_dispatch: # Nút bấm cưỡng bức build/deploy toàn bộ
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -78,7 +78,6 @@ jobs:
             cd /home/mitsne/realtime-chat/apps
             cp /home/mitsne/realtime-chat/sync_tmp/apps/docker-compose.yml .
 
-            # Ghi file .env an toàn tuyệt đối bằng HEREDOC
             cat <<'EOF' > .env
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             BE_PORT=${{ secrets.BE_PORT }}
@@ -107,17 +106,21 @@ jobs:
             set -e
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp && chmod 600 id_rsa_temp
 
-            # A. Đẩy file config sang VM 2
-            rsync -avz -e "ssh -i id_rsa_temp -o StrictHostKeyChecking=no" \
-              /home/mitsne/realtime-chat/sync_tmp/infrastructure/ \
+            # A. Dùng SCP -r thay cho RSYNC để không cần cài thêm package
+            echo ">>> Đang đẩy infrastructure sang VM 2..."
+            ssh -i id_rsa_temp -o StrictHostKeyChecking=no mitsne@${{ secrets.VM2_INTERNAL_IP }} "mkdir -p /home/mitsne/realtime-chat/infrastructure"
+
+            scp -i id_rsa_temp -o StrictHostKeyChecking=no -r \
+              /home/mitsne/realtime-chat/sync_tmp/infrastructure/* \
               mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
             # B. Bridge Image Socket Bridge sang VM 2
+            echo ">>> Đang chuyển Image Socket Bridge sang VM 2..."
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
             docker save -o socket_bridge.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
             scp -i id_rsa_temp -o "StrictHostKeyChecking=no" socket_bridge.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-            # C. Thực thi tại VM 2
+            # C. SSH sang VM 2 thực thi
             ssh -i id_rsa_temp -o "StrictHostKeyChecking=no" mitsne@${{ secrets.VM2_INTERNAL_IP }} "
                 cd /home/mitsne/realtime-chat/infrastructure
                 if [ -f socket_bridge.tar ]; then
