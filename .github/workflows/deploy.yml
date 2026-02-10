@@ -92,6 +92,7 @@ jobs:
             echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
             echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+            echo 'DB_URI=${{ secrets.DB_URI }}' >> .env
             echo "BE_URL=${{ secrets.BE_URL }}" >> .env
 
             echo "Đang khởi động lại Docker Compose..."
