@@ -141,11 +141,18 @@ jobs:
       # 9. Restart VM 2
       - name: Restart Services on VM 2
         if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.infra == 'true'
-        run: |
-          eval $(ssh-agent -s)
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
-          ssh -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o ForwardAgent=yes -o "StrictHostKeyChecking=no" \
-              mitsne@${{ secrets.VM2_INTERNAL_IP }} "
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM1_PUBLIC_IP }}
+          username: mitsne
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 1. Tạo key tạm trên VM 1 để có quyền SSH sang VM 2
+            echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp
+            chmod 600 id_rsa_temp
+
+            # 2. Đứng từ VM 1, SSH sang VM 2 để chạy lệnh
+            ssh -i id_rsa_temp -o "StrictHostKeyChecking=no" mitsne@${{ secrets.VM2_INTERNAL_IP }} "
                 cd /home/mitsne/realtime-chat/infrastructure && \
                 
                 # Nếu có file ảnh mới thì load
@@ -167,4 +174,7 @@ jobs:
                 
                 echo '>>> Restarting Containers...' && \
                 docker compose up -d --remove-orphans
-              "
+            "
+
+            # 3. Dọn dẹp key tạm
+            rm id_rsa_temp
