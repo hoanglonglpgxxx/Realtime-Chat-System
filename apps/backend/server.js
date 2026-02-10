@@ -37,7 +37,7 @@ const db = require("./models/index");
 const Role = db.role;
 mongoose.set('debug', true);
 mongoose.connection.once('open', async () => {
-    console.log('Connected to MongoDB');
+    console.log('Connected to DB');
 
     try {
         const result = await mongoose.connection.db.admin().listDatabases();
