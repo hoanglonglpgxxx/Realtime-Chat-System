@@ -21,9 +21,25 @@ services:
     restart: always
     command: redis-server --requirepass ${REDIS_PASS}
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_PORT}:6379" # VM 1 sẽ gọi vào qua cổng này (43816)
     volumes:
       - redis_data:/data
+
+  # 3. Socket Bridge Service (BỘ 7 FILE CỦA BẠN)
+  socket_bridge:
+    image: ${DOCKERHUB_USERNAME}/chat-socket-bridge:latest
+    container_name: socket_bridge
+    restart: always
+    environment:
+      - PORT=5000
+      - REDIS_HOST=redis_chat
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASS}
+      - APP_SECRET_KEY=${APP_SECRET_KEY}
+    ports:
+      - "5000:5000" # Mở cổng 5000 để Nginx VM 1 gọi vào qua IP nội bộ
+    depends_on:
+      - redis_chat
 
 volumes:
   mongo_data:
