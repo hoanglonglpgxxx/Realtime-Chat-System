@@ -8,7 +8,7 @@ services:
       - "${BE_PORT}:${BE_PORT}"
     environment:
       - NODE_ENV=${NODE_ENV}
-      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASS}@${VM2_INTERNAL_IP}:53410/chat_db?authSource=admin
+      - DB_URI=${DB_URI}
       - REDIS_HOST=${VM2_INTERNAL_IP}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASS}
