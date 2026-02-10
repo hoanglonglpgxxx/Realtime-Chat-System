@@ -40,7 +40,7 @@ const Navbar = () => {
           </li>
           <li>
             <Link
-              href="/about"
+              href="/chat"
               onClick={() => setIsOpen(false)}
               activeClassName="active-link"
             >
@@ -49,7 +49,7 @@ const Navbar = () => {
           </li>
           <li>
             <Link
-              href="/contact"
+              href="/about"
               onClick={() => setIsOpen(false)}
               activeClassName="active-link"
             >

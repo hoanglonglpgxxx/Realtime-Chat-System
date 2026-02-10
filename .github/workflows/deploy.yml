@@ -3,16 +3,16 @@ name: Deploy Chat System
 on:
   push:
     branches: ["main"]
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công để update env/config
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      # 1. Lấy code về
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. [QUAN TRỌNG] Kiểm tra xem folder nào thay đổi để tránh build thừa
+      # 1. Kiểm tra thay đổi folder
       - name: Check for changes
         uses: dorny/paths-filter@v2
         id: changes
@@ -22,6 +22,8 @@ jobs:
               - 'apps/backend/**'
             frontend:
               - 'apps/frontend/**'
+            socket-bridge:
+              - 'apps/socket-bridge/**'
             infra:
               - 'infrastructure/**'
             compose:
@@ -36,7 +38,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 3. Build Backend (Chỉ chạy khi folder backend thay đổi)
+      # 2. Build Images (Chỉ build cái nào thay đổi)
       - name: Build and Push Backend
         if: steps.changes.outputs.backend == 'true'
         uses: docker/build-push-action@v4
@@ -45,10 +47,7 @@ jobs:
           file: ./apps/backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
-      # 4. Build Frontend (Chỉ chạy khi folder frontend thay đổi)
       - name: Build and Push Frontend
         if: steps.changes.outputs.frontend == 'true'
         uses: docker/build-push-action@v4
@@ -57,22 +56,19 @@ jobs:
           file: ./apps/frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
-      # 5. Copy file Docker Compose sang VM 1 (Chạy khi có sửa đổi frontend/backend hoặc compose)
-      - name: Copy Config files to VM 1
-        if: steps.changes.outputs.frontend == 'true' || steps.changes.outputs.backend == 'true' || steps.changes.outputs.compose == 'true'
-        uses: appleboy/scp-action@v0.1.4
+      - name: Build and Push Socket Bridge
+        if: steps.changes.outputs.socket-bridge == 'true'
+        uses: docker/build-push-action@v4
         with:
-          host: ${{ secrets.VM1_PUBLIC_IP }}
-          username: mitsne
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "apps/docker-compose.yml"
-          target: "/home/mitsne/realtime-chat/"
+          context: ./apps/socket-bridge
+          file: ./apps/socket-bridge/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
 
-      # 6. Deploy VM 1 (Frontend & Backend) - Bước này sửa lỗi BE_URL
+      # 3. Cấu hình VM 1 (Web Server)
       - name: Deploy to VM 1
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true' || steps.changes.outputs.compose == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
@@ -81,8 +77,7 @@ jobs:
           script: |
             cd /home/mitsne/realtime-chat/apps
 
-            # --- TẠO FILE .ENV (QUAN TRỌNG NHẤT) ---
-            echo "Đang tạo file .env..."
+            # Tạo .env với REDIS_PORT=43816
             echo "BE_PORT=${{ secrets.BE_PORT }}" > .env
             echo "FE_PORT=${{ secrets.FE_PORT }}" >> .env
             echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
@@ -91,92 +86,53 @@ jobs:
             echo "MONGO_PASS=${{ secrets.MONGO_PASS }}" >> .env
             echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
             echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
             echo 'DB_URI=${{ secrets.DB_URI }}' >> .env
             echo "BE_URL=${{ secrets.BE_URL }}" >> .env
 
-            echo "Đang khởi động lại Docker Compose..."
             docker compose pull
             docker compose up -d --remove-orphans
-            docker image prune -f
 
-      # 7. Sync Config sang VM 2 (Chỉ chạy khi sửa folder Infrastructure)
-      - name: Sync Infrastructure to VM 2
-        if: steps.changes.outputs.infra == 'true'
-        run: |
-          eval $(ssh-agent -s)
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add -
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VM1_PUBLIC_IP }} >> ~/.ssh/known_hosts
-
-          scp -o "ProxyJump mitsne@${{ secrets.VM1_PUBLIC_IP }}" -o ForwardAgent=yes -o "StrictHostKeyChecking=no" \
-              -r ./infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
-
-      # 8. Bridge Images sang VM 2 (Chỉ chạy khi Backend thay đổi - Tối ưu tốc độ)
-      - name: Bridge Backend Image to VM 2
-        if: steps.changes.outputs.backend == 'true'
+      # 4. Bridge Socket Bridge Image sang VM 2 (Vì VM 2 nằm vùng nội bộ)
+      - name: Bridge Socket Image to VM 2
+        if: steps.changes.outputs.socket-bridge == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e 
-            echo ">>> 1. Pulling Backend Image on VM 1..."
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
+            docker save -o socket_bridge.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
 
-            echo ">>> 2. Saving Backend Image..."
-            # Chỉ save backend, bỏ qua mongo/redis/nginx để tiết kiệm thời gian
-            docker save -o backend_image.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
+            echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp && chmod 600 id_rsa_temp
+            scp -i id_rsa_temp -o "StrictHostKeyChecking=no" socket_bridge.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+            rm id_rsa_temp socket_bridge.tar
 
-            echo ">>> 3. Preparing SSH Key..."
-            echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp
-            chmod 600 id_rsa_temp
-
-            echo ">>> 4. Sending TAR to VM 2..."
-            scp -i id_rsa_temp -o "StrictHostKeyChecking=no" backend_image.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
-
-            echo ">>> 5. Cleanup..."
-            rm id_rsa_temp backend_image.tar
-
-      # 9. Restart VM 2
+      # 5. Cấu hình VM 2 (Database & Socket Bridge)
       - name: Restart Services on VM 2
-        if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.infra == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.socket-bridge == 'true' || steps.changes.outputs.infra == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 1. Tạo key tạm trên VM 1 để có quyền SSH sang VM 2
-            echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp
-            chmod 600 id_rsa_temp
-
-            # 2. Đứng từ VM 1, SSH sang VM 2 để chạy lệnh
+            echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp && chmod 600 id_rsa_temp
             ssh -i id_rsa_temp -o "StrictHostKeyChecking=no" mitsne@${{ secrets.VM2_INTERNAL_IP }} "
-                cd /home/mitsne/realtime-chat/infrastructure && \
+                cd /home/mitsne/realtime-chat/infrastructure
                 
-                # Nếu có file ảnh mới thì load
-                if [ -f backend_image.tar ]; then
-                  echo '>>> Loading Backend Image...'
-                  docker load -i backend_image.tar
-                  rm backend_image.tar
+                if [ -f socket_bridge.tar ]; then
+                  docker load -i socket_bridge.tar && rm socket_bridge.tar
                 fi
                 
-                # Tạo lại .env trên VM 2 cho chắc ăn
-                echo 'DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}' > .env && \
-                echo 'MONGO_USER=${{ secrets.MONGO_USER }}' >> .env && \
-                echo 'MONGO_PASS=${{ secrets.MONGO_PASS }}' >> .env && \
-                echo 'REDIS_PASS=${{ secrets.REDIS_PASS }}' >> .env && \
-                echo 'NODE_ENV=${{ secrets.NODE_ENV }}' >> .env && \
-                echo 'DB_URI=${{ secrets.DB_URI }}' >> .env && \
-                echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env && \
-                echo 'BE_URL=${{ secrets.BE_URL }}' >> .env && \
-                echo 'PORT_MONGODB=${{ secrets.PORT_MONGODB }}' >> .env && \
+                # Cập nhật .env cho VM 2 (Quan trọng: REDIS_PORT=43816)
+                echo 'MONGO_USER=${{ secrets.MONGO_USER }}' > .env
+                echo 'MONGO_PASS=${{ secrets.MONGO_PASS }}' >> .env
+                echo 'REDIS_PASS=${{ secrets.REDIS_PASS }}' >> .env
+                echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env
+                echo 'APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }}' >> .env
+                echo 'DB_URI=${{ secrets.DB_URI }}' >> .env
                 
-                echo '>>> Restarting Containers...' && \
                 docker compose up -d --remove-orphans
             "
-
-            # 3. Dọn dẹp key tạm
             rm id_rsa_temp

@@ -1,0 +1,15 @@
+{
+    "name": "socket-bridge",
+    "version": "1.0.0",
+    "description": "Bridge between Redis and Socket.io",
+    "main": "index.js",
+    "scripts": {
+        "start": "nodemon index.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "socket.io": "^4.7.2",
+        "redis": "^4.6.10",
+        "@socket.io/redis-adapter": "^8.2.1"
+    }
+}

@@ -11,9 +11,9 @@ if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config({ path: '../../.env' });
 }
 
-
-const DB = process.env.DB_URI || process.env.DATABASE.replace('<PASSWORD>', process.env.DATABASE_PASSWORD);
-
+//prod thì bỏ cmt dòng dưới
+// const DB = process.env.DB_URI || process.env.DATABASE.replace('<PASSWORD>', process.env.DATABASE_PASSWORD);
+const DB = "mongodb+srv://mitsngeither:Abc.2010%40@cluster0.rfwzvbn.mongodb.net/realtime-chat?retryWrites=true&w=majority";
 const connectDB = async () => {
     try {
         await mongoose.connect(

@@ -6,12 +6,16 @@ const connectDB = require('./config/db.config');
 const authRouter = require('./routes/auth.routes');
 const userRouter = require('./routes/user.routes');
 // const { seedingRoomTypes } = require('./test/seeding.test');
+const { initializeSocket } = require('./socket/index');
+
+
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config({ path: '../../.env' });
 }
 
 const app = express();
 const PORT = process.env.BE_PORT || 5000;
+const httpServer = createServer(app);
 
 app.use(cors({
     // origin: 'https://example.com', // Allow only this domain to access the resources
@@ -35,9 +39,12 @@ app.get('/', (req, res) => {
 connectDB();
 const db = require("./models/index");
 const Role = db.role;
+
+// initializeSocket(httpServer);
+
 mongoose.set('debug', true);
 mongoose.connection.once('open', async () => {
-    console.log('Connected 123 to DB');
+    console.log('Connected to DB');
 
     try {
         const result = await mongoose.connection.db.admin().listDatabases();
