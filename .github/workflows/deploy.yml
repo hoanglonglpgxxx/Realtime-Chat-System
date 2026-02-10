@@ -3,7 +3,7 @@ name: Deploy Chat System
 on:
   push:
     branches: ["main"]
-  workflow_dispatch: # Cho phép bấm nút chạy thủ công để update env/config
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -12,7 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 1. Kiểm tra thay đổi folder
       - name: Check for changes
         uses: dorny/paths-filter@v2
         id: changes
@@ -26,11 +25,6 @@ jobs:
               - 'apps/socket-bridge/**'
             infra:
               - 'infrastructure/**'
-            compose:
-              - 'apps/docker-compose.yml'
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -38,25 +32,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 2. Build Images (Chỉ build cái nào thay đổi)
-      - name: Build and Push Backend
-        if: steps.changes.outputs.backend == 'true'
-        uses: docker/build-push-action@v4
-        with:
-          context: ./apps/backend
-          file: ./apps/backend/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest
-
-      - name: Build and Push Frontend
-        if: steps.changes.outputs.frontend == 'true'
-        uses: docker/build-push-action@v4
-        with:
-          context: ./apps/frontend
-          file: ./apps/frontend/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
-
+      # --- PHẦN 1: BUILD IMAGE (Chỉ chạy khi có sửa code) ---
       - name: Build and Push Socket Bridge
         if: steps.changes.outputs.socket-bridge == 'true'
         uses: docker/build-push-action@v4
@@ -66,9 +42,9 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
 
-      # 3. Cấu hình VM 1 (Web Server)
+      # --- PHẦN 2: DEPLOY VM 1 (Web & Proxy) ---
       - name: Deploy to VM 1
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true' || steps.changes.outputs.compose == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.backend == 'true' || steps.changes.outputs.frontend == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
@@ -76,42 +52,45 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/mitsne/realtime-chat/apps
-
-            # Tạo .env với REDIS_PORT=43816
-            echo "BE_PORT=${{ secrets.BE_PORT }}" > .env
-            echo "FE_PORT=${{ secrets.FE_PORT }}" >> .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
             echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
             echo "VM2_INTERNAL_IP=${{ secrets.VM2_INTERNAL_IP }}" >> .env
-            echo "MONGO_USER=${{ secrets.MONGO_USER }}" >> .env
-            echo "MONGO_PASS=${{ secrets.MONGO_PASS }}" >> .env
             echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
-            echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
-            echo 'DB_URI=${{ secrets.DB_URI }}' >> .env
-            echo "BE_URL=${{ secrets.BE_URL }}" >> .env
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-
+            # ... (Thêm các biến khác của VM 1 vào đây)
             docker compose pull
             docker compose up -d --remove-orphans
 
-      # 4. Bridge Socket Bridge Image sang VM 2 (Vì VM 2 nằm vùng nội bộ)
-      - name: Bridge Socket Image to VM 2
-        if: steps.changes.outputs.socket-bridge == 'true'
+      # --- PHẦN 3: ĐẨY FILE SANG VM 2 QUA VM 1 (Đây là chỗ bạn đang thiếu) ---
+      - name: Sync Infrastructure to VM 2
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.infra == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
-            docker save -o socket_bridge.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
+            # 1. Tạo folder tạm và lưu key
+            mkdir -p ~/infra_sync
+            echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/id_rsa_temp
+            chmod 600 ~/id_rsa_temp
 
-            echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp && chmod 600 id_rsa_temp
-            scp -i id_rsa_temp -o "StrictHostKeyChecking=no" socket_bridge.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
-            rm id_rsa_temp socket_bridge.tar
+            # 2. GitHub đã copy file vào VM 1 chưa? Nếu chưa, ta dùng SCP từ Runner sang VM 1 trước
+            # Nhưng để đơn giản, ta sẽ dùng SSH Action để tạo file trực tiếp hoặc rsync
 
-      # 5. Cấu hình VM 2 (Database & Socket Bridge)
-      - name: Restart Services on VM 2
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.socket-bridge == 'true' || steps.changes.outputs.infra == 'true'
+            # (Lưu ý: Bạn cần bước SCP infrastructure sang VM 1 trước đó)
+
+      - name: Copy Infrastructure to VM 1
+        if: steps.changes.outputs.infra == 'true'
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VM1_PUBLIC_IP }}
+          username: mitsne
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "infrastructure/*"
+          target: "/home/mitsne/realtime-chat/infra_tmp"
+
+      - name: Final Move to VM 2
+        if: steps.changes.outputs.infra == 'true' || steps.changes.outputs.socket-bridge == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM1_PUBLIC_IP }}
@@ -119,21 +98,23 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp && chmod 600 id_rsa_temp
-            ssh -i id_rsa_temp -o "StrictHostKeyChecking=no" mitsne@${{ secrets.VM2_INTERNAL_IP }} "
-                cd /home/mitsne/realtime-chat/infrastructure
-                
-                if [ -f socket_bridge.tar ]; then
-                  docker load -i socket_bridge.tar && rm socket_bridge.tar
-                fi
-                
-                # Cập nhật .env cho VM 2 (Quan trọng: REDIS_PORT=43816)
-                echo 'MONGO_USER=${{ secrets.MONGO_USER }}' > .env
-                echo 'MONGO_PASS=${{ secrets.MONGO_PASS }}' >> .env
-                echo 'REDIS_PASS=${{ secrets.REDIS_PASS }}' >> .env
-                echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env
-                echo 'APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }}' >> .env
-                echo 'DB_URI=${{ secrets.DB_URI }}' >> .env
-                
-                docker compose up -d --remove-orphans
+
+            # Đẩy từ VM 1 sang VM 2
+            rsync -avz -e "ssh -i id_rsa_temp -o StrictHostKeyChecking=no" \
+            /home/mitsne/realtime-chat/infra_tmp/infrastructure/ \
+            mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+
+            # SSH sang VM 2 để Restart
+            ssh -i id_rsa_temp -o StrictHostKeyChecking=no mitsne@${{ secrets.VM2_INTERNAL_IP }} "
+              cd /home/mitsne/realtime-chat/infrastructure
+              echo 'DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}' > .env
+              echo 'REDIS_PASS=${{ secrets.REDIS_PASS }}' >> .env
+              echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env
+              echo 'MONGO_USER=${{ secrets.MONGO_USER }}' >> .env
+              echo 'MONGO_PASS=${{ secrets.MONGO_PASS }}' >> .env
+              echo 'APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }}' >> .env
+              echo 'PORT_MONGODB=${{ secrets.PORT_MONGODB }}' >> .env
+              docker compose pull socket_bridge
+              docker compose up -d --remove-orphans
             "
             rm id_rsa_temp
