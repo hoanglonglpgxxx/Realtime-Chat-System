@@ -23,14 +23,14 @@ services:
       - "${FE_PORT}:3000"
     restart: always
 
-  # Nginx đóng vai trò Reverse Proxy (Cửa ngõ bảo mật)
+  # Nginx: Reverse Proxy
   nginx_proxy:
     image: nginx:alpine
     container_name: nginx_proxy
     ports:
       - "8029:80" # Mở cổng 8029 ra Internet qua VM 1
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro # File cấu hình Nginx
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
       - backend_chat
       - frontend_chat
