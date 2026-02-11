@@ -3,7 +3,7 @@ name: Deploy Chat System
 on:
   push:
     branches: ["main"]
-  workflow_dispatch:
+  workflow_dispatch: 
 
 jobs:
   build-and-deploy:
@@ -27,8 +27,8 @@ jobs:
         with:
           context: ./apps/socket-bridge
           push: true
-          no-cache: true # Không dùng cache layer cũ
-          pull: true # Luôn kéo base image mới nhất
+          no-cache: true
+          pull: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
 
       # --- 2. SYNC CONFIG SANG VM 1 ---
@@ -52,49 +52,43 @@ jobs:
             set -e
             echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa_temp && chmod 600 id_rsa_temp
 
-            # A. LÀM SẠCH VM 1 TRƯỚC KHI PULL
-            echo ">>> VM 1: Xóa image cũ trong cache..."
+            # A. LÀM SẠCH VM 1 VÀ SAVE IMAGE
             docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest || true
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
-
-            # Save ra file tar
             rm -f socket_bridge.tar
             docker save -o socket_bridge.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
 
-            # B. ĐẨY SANG VM 2 (Ghi đè hoàn toàn folder config)
+            # B. ĐẨY SANG VM 2
             ssh -i id_rsa_temp -o StrictHostKeyChecking=no mitsne@${{ secrets.VM2_INTERNAL_IP }} "mkdir -p /home/mitsne/realtime-chat/infrastructure"
             scp -i id_rsa_temp -o StrictHostKeyChecking=no -r /home/mitsne/realtime-chat/sync_tmp/infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
             scp -i id_rsa_temp -o StrictHostKeyChecking=no socket_bridge.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
-            # C. VM 2: ĐẬP ĐI XÂY LẠI
-            ssh -i id_rsa_temp -o "StrictHostKeyChecking=no" mitsne@${{ secrets.VM2_INTERNAL_IP }} "
+            # C. VM 2: ĐẬP ĐI XÂY LẠI (Lưu ý: EOF KHÔNG ĐƯỢC CÓ KHOẢNG TRẮNG ĐỨNG TRƯỚC)
+            ssh -i id_rsa_temp -o "StrictHostKeyChecking=no" mitsne@${{ secrets.VM2_INTERNAL_IP }} <<'REMOTE_COMMANDS'
                 cd /home/mitsne/realtime-chat/infrastructure
                 
                 echo '>>> VM 2: Dừng tất cả và xóa sạch dấu vết cũ...'
                 docker compose down --remove-orphans || true
-                
-                # XÓA IMAGE CŨ TRÊN VM 2 (BƯỚC QUYẾT ĐỊNH)
                 docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest || true
                 
-                # Nạp bản vừa mới chuyển sang
                 if [ -f socket_bridge.tar ]; then 
                     docker load -i socket_bridge.tar && rm socket_bridge.tar
                 fi
                 
-                # Tạo .env mới nhất
-                cat <<'EOF' > .env
-                DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-                MONGO_USER=${{ secrets.MONGO_USER }}
-                MONGO_PASS=${{ secrets.MONGO_PASS }}
-                REDIS_PASS=${{ secrets.REDIS_PASS }}
-                REDIS_PORT=${{ secrets.REDIS_PORT }}
-                APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }}
-                DB_URI=${{ secrets.DB_URI }}
-                PORT_MONGODB=${{ secrets.PORT_MONGODB }}
-                EOF
+                # Tạo .env mới (Viết sát lề trái để tránh lỗi syntax)
+                cat <<EOF > .env
+DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+MONGO_USER=${{ secrets.MONGO_USER }}
+MONGO_PASS=${{ secrets.MONGO_PASS }}
+REDIS_PASS=${{ secrets.REDIS_PASS }}
+REDIS_PORT=${{ secrets.REDIS_PORT }}
+APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }}
+DB_URI=${{ secrets.DB_URI }}
+PORT_MONGODB=${{ secrets.PORT_MONGODB }}
+EOF
                 
                 echo '>>> VM 2: Khởi động hệ thống sạch 100%...'
                 docker compose up -d --force-recreate
-            "
+REMOTE_COMMANDS
             rm id_rsa_temp socket_bridge.tar
             rm -rf /home/mitsne/realtime-chat/sync_tmp
