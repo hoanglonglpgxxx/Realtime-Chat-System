@@ -1,6 +1,6 @@
 const crypto = require('crypto');
-const { APP_SECRET_KEY, config } = require('./config');
-const { debugLog } = require('./utils.js');
+const { APP_SECRET_KEY, config } = require('../config.js');
+const { debugLog } = require('../utils.js');
 
 const NONCE_TTL_SECONDS = 60;
 const MAX_TIME_DIFF_SECONDS = 60;

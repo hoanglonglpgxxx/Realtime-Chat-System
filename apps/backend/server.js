@@ -14,7 +14,6 @@ if (process.env.NODE_ENV !== 'production') {
 
 const app = express();
 const PORT = process.env.BE_PORT || 5000;
-const httpServer = createServer(app);
 
 app.use(cors({
     // origin: 'https://example.com', // Allow only this domain to access the resources
