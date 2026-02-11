@@ -2,7 +2,7 @@ const { getLocalIP, debugLog } = require('./utils.js');
 const { config } = require('./config.js');
 const { initializeServer } = require('./connection.js');
 const { subscribeAndVerifyEvents } = require('./handlers/event.handler.js');
-const { registerHandlers } = require('./listeners.js');
+const { registerHandlers } = require('./listener.js');
 
 async function startServer() {
     try {
