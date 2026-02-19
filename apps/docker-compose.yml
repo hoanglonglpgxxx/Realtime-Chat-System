@@ -5,7 +5,7 @@ services:
     image: ${DOCKERHUB_USERNAME}/chat-backend:latest
     container_name: backend_chat
     ports:
-      - "${BE_PORT}:${BE_PORT}"
+      - "127.0.0.1:${BE_PORT}:${BE_PORT}"  # Bind to localhost only
     environment:
       - NODE_ENV=${NODE_ENV}
       - DB_URI=${DB_URI}
@@ -21,7 +21,7 @@ services:
       - BE_URL=${BE_URL}
       - NEXT_PUBLIC_SOCKET_URL=${SOCKET_URL}
     ports:
-      - "${FE_PORT}:3000"
+      - "127.0.0.1:${FE_PORT}:3000"  # Bind to localhost only
     restart: always
 
   # Nginx: Reverse Proxy
