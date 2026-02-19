@@ -4,15 +4,16 @@ export function middleware(request) {
     // 1. Lấy token từ cookie
     const token = request.cookies.get('token')?.value;
     const isChatPage = request.nextUrl.pathname.startsWith('/chat');
-    const isDashboard = request.nextUrl.pathname.startsWith('/dasboard');
+    const isDashboard = request.nextUrl.pathname.startsWith('/dashboard');
+    const isLoginPage = request.nextUrl.pathname === '/login';
 
-    // 2. Nếu vào trang Chat mà không có Token -> Đá về Login
+    // 2. Nếu vào trang Chat/Dashboard mà không có Token -> Đá về Login
     if ((isChatPage || isDashboard) && !token) {
         return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // 3. Nếu đã có Token mà vẫn cố vào Login -> Đẩy thẳng vào Chat
-    if (request.nextUrl.pathname === '/login' && token) {
+    // 3. Nếu đã có Token mà vẫn cố vào Login -> Đẩy về Dashboard
+    if (isLoginPage && token) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
@@ -21,5 +22,5 @@ export function middleware(request) {
 
 // Chỉ chạy middleware cho các đường dẫn này
 export const config = {
-    matcher: ['/chat/:path*', '/login'],
+    matcher: ['/chat/:path*', '/dashboard/:path*', '/login'],
 };

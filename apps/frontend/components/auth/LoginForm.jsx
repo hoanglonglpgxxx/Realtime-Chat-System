@@ -27,8 +27,20 @@ export default function LoginForm() {
       const result = await response.json();
 
       if (response.ok) {
-        // 2. Lưu thông tin User & Token vào LocalStorage để các Component khác sử dụng
-        localStorage.setItem("user", JSON.stringify(result));
+        // 2. CHỈ lưu thông tin User (KHÔNG lưu token vì đã ở HttpOnly Cookie)
+        if (result.user) {
+          localStorage.setItem(
+            "user",
+            JSON.stringify({
+              id: result.user.id,
+              username: result.user.username,
+              email: result.user.email,
+              fullName: result.user.fullName,
+              avatar: result.user.avatar,
+              roles: result.user.roles,
+            }),
+          );
+        }
         toast.success(result.message || "Đăng nhập thành công!");
 
         // 3. Chuyển hướng người dùng vào trang Dashboard

@@ -1,4 +1,4 @@
-// apps/frontend/app/services/auth.service.js
+// apps/frontend/services/auth.service.js
 const PROXY_URL = "/api/proxy/";
 
 export const login = async (username, password) => {
@@ -11,9 +11,17 @@ export const login = async (username, password) => {
     const data = await response.json();
 
     if (response.ok) {
-        // CHỈ lưu thông tin profile (tên, avatar), KHÔNG lưu token: token giờ đã nằm an toàn trong HttpOnly Cookie
+        // CHỈ lưu thông tin user profile (KHÔNG lưu token: token nằm trong HttpOnly Cookie)
         if (data.user) {
-            localStorage.setItem("user_profile", JSON.stringify(data.user));
+            const userProfile = {
+                id: data.user.id,
+                username: data.user.username,
+                email: data.user.email,
+                fullName: data.user.fullName,
+                avatar: data.user.avatar,
+                roles: data.user.roles
+            };
+            localStorage.setItem("user", JSON.stringify(userProfile));
         }
     } else {
         // Ném lỗi để React Query hoặc Catch block ở Form xử lý
@@ -26,5 +34,18 @@ export const login = async (username, password) => {
 export const logout = async () => {
     // Gọi API Proxy để xóa Cookie ở Server
     await fetch(PROXY_URL + "logout", { method: "POST" });
-    localStorage.removeItem("user_profile");
+    localStorage.removeItem("user");
+};
+
+export const getCurrentUser = () => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+        try {
+            return JSON.parse(userStr);
+        } catch (e) {
+            console.error("Error parsing user data:", e);
+            return null;
+        }
+    }
+    return null;
 };
