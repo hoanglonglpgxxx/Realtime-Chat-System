@@ -69,7 +69,13 @@ jobs:
 
             # Cập nhật file config và nginx
             cp /home/mitsne/realtime-chat/sync_tmp/apps/docker-compose.yml .
-            cp -r /home/mitsne/realtime-chat/sync_tmp/apps/nginx .
+
+            # Copy nginx config (create folder first)
+            mkdir -p nginx/conf.d
+            cp -r /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/* nginx/conf.d/
+
+            # Verify file copied
+            ls -la nginx/conf.d/
 
             # TẠO .ENV CHO VM 1 (Dùng echo để không lỗi format)
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
