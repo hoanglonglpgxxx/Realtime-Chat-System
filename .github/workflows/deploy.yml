@@ -74,15 +74,18 @@ jobs:
             echo "=== Files in sync_tmp/apps/nginx/conf.d/ ==="
             ls -la /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/ || echo "Source folder not found!"
 
-            # Copy nginx config (remove old, create new)
-            rm -rf nginx/conf.d
+            # Copy nginx config (use sudo to remove root-owned folder)
+            sudo rm -rf nginx/conf.d
             mkdir -p nginx/conf.d
-            cp /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/default.conf nginx/conf.d/ || echo "Failed to copy nginx config!"
+            cp /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/default.conf nginx/conf.d/
 
             # Verify file copied
             echo "=== Files in apps/nginx/conf.d/ ==="
             ls -la nginx/conf.d/
             cat nginx/conf.d/default.conf 2>&1 | head -5 || echo "default.conf not found!"
+
+            # TẠO .ENV CHO VM 1
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
             echo "BE_PORT=${{ secrets.BE_PORT }}" >> .env
             echo "FE_PORT=${{ secrets.FE_PORT }}" >> .env
             echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
@@ -91,6 +94,7 @@ jobs:
             echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
             echo "DB_URI=${{ secrets.DB_URI }}" >> .env
             echo "BE_URL=${{ secrets.BE_URL }}" >> .env
+            echo "SOCKET_URL=${{ secrets.SOCKET_URL }}" >> .env
 
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
