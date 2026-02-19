@@ -8,6 +8,7 @@ services:
       - "127.0.0.1:${BE_PORT}:${BE_PORT}"  # Bind to localhost only
     environment:
       - NODE_ENV=${NODE_ENV}
+      - BE_PORT=${BE_PORT}
       - DB_URI=${DB_URI}
       - REDIS_HOST=${VM2_INTERNAL_IP}
       - REDIS_PORT=${REDIS_PORT}
