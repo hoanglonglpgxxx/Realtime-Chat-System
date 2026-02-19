@@ -45,7 +45,8 @@ exports.sendMessage = async (req, res) => {
         // Populate để có đầy đủ thông tin
         const populatedMessage = await Message.findById(newMessage._id)
             .populate('sender', 'username fullName avatar')
-            .populate('room', 'name roomType members');
+            .populate('room', 'name roomType members')
+            .lean();
 
         // PUBLISH event đến Redis để Socket.IO xử lý với HMAC signature
         const redisPayload = signMessage({
