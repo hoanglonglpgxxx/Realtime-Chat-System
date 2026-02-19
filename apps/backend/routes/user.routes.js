@@ -13,5 +13,6 @@ router.use((req, res, next) => {
 });
 
 router.get('/selectAll', controller.selectAll);
+router.get('/', [authJwt.verifyToken], controller.selectAll);
 
 module.exports = router;
