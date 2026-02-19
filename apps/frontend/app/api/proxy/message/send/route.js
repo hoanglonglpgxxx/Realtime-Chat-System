@@ -22,7 +22,16 @@ export async function POST(request) {
             );
         }
 
-        const backendResponse = await fetch(`${process.env.BE_URL}/api/v1/messages/send`, {
+        const backendUrl = process.env.BE_URL;
+        const targetUrl = `${backendUrl}/api/v1/messages/send`;
+
+        console.log('🔍 Message Send Proxy:', {
+            BE_URL: backendUrl,
+            targetUrl: targetUrl,
+            body: body
+        });
+
+        const backendResponse = await fetch(targetUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
