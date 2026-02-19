@@ -12,7 +12,7 @@ if (process.env.NODE_ENV !== 'production') {
 export async function POST(request) {
     try {
         const body = await request.json();
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const token = cookieStore.get('token')?.value;
 
         if (!token) {

@@ -13,6 +13,9 @@ const nextConfig = {
       fullUrl: true,
     },
   },
+  env: {
+    NEXT_PUBLIC_SOCKET_URL: process.env.SOCKET_URL,
+  },
   async rewrites() {
     let backendPort = process.env.BE_PORT || 5000;
     return [
