@@ -41,9 +41,8 @@ async function initializeServer() {
         await Promise.all([pubClient.connect(), subClient.connect()]);
         debugLog('NO_ADDR', 'Redis clients connected successfully');
 
-        // Socket.IO Setup với Redis Adapter (để scale nhiều node nếu cần)
         io = socketio(server, {
-            path: '/socket.io', // Must match client path and nginx location
+            path: '/socket.io',
             cors: { origin: "*" }, // Chú ý: Production nên limit origin
             adapter: createAdapter(pubClient, subClient),
             transports: ['websocket', 'polling']
