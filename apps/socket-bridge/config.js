@@ -6,10 +6,9 @@ const { debugLog } = require('./utils.js');
 const config = {
     redisHost: process.env.REDIS_HOST || "localhost",
     redisPort: process.env.REDIS_PORT || 6379,
-    redisPassword: process.env.REDIS_PASSWORD || "",
+    redisPassword: process.env.REDIS_PASS || "",
     secretKey: process.env.SECRET_KEY_PATH || "", // Đường dẫn file chứa Key bảo mật
     port: process.env.PORT || 3000,
-    // Channel Redis dùng để giao tiếp giữa Express API và Socket Server
     redisChannel: 'mits_chat_event'
 };
 
