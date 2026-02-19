@@ -17,12 +17,13 @@ const nextConfig = {
     NEXT_PUBLIC_SOCKET_URL: process.env.SOCKET_URL,
   },
   async rewrites() {
-    // Use BE_URL from env or fallback to backend container name
+    // Only rewrite direct backend API calls (/api/v1/*)
+    // Do NOT rewrite /api/proxy/* (those are Next.js route handlers)
     const backendUrl = process.env.BE_URL || 'http://backend_chat:5000';
     return [
       {
-        source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
+        source: '/api/v1/:path*',
+        destination: `${backendUrl}/api/v1/:path*`,
       },
     ];
   },
