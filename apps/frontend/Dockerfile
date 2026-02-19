@@ -11,7 +11,8 @@ COPY . .
 ARG SOCKET_URL
 ENV NEXT_PUBLIC_SOCKET_URL=$SOCKET_URL
 
-# Build ứng dụng frontend
+# Clear Next.js cache and build fresh
+RUN rm -rf .next
 RUN npm run build
 
 EXPOSE 3000

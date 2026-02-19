@@ -11,6 +11,7 @@ if (process.env.NODE_ENV !== 'production') {
  */
 export async function GET(request, { params }) {
     try {
+        console.log(">>> Đã nhận request cho roomId:", (await params).roomId);
         const { roomId } = await params;
         const cookieStore = await cookies();
         const token = cookieStore.get('token')?.value;
