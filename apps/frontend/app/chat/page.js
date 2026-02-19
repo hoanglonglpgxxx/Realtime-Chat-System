@@ -65,7 +65,8 @@ export default function ChatPage() {
 
         // Listen for new messages
         socketService.current.onNewMessage((data) => {
-            console.log('📨 New message received:', data);
+            console.log('\n📨 [FRONTEND] New message event received!');
+            console.log('📦 [FRONTEND] Data:', data);
             if (data.message) {
                 // Handle both populated room (object) and room ID (string)
                 const messageRoomId = typeof data.message.room === 'object'
@@ -74,14 +75,23 @@ export default function ChatPage() {
 
                 // Use ref to get latest selectedRoom value
                 const currentRoom = selectedRoomRef.current;
+                console.log('🔍 [FRONTEND] Current room:', currentRoom?._id);
+                console.log('🔍 [FRONTEND] Message room:', messageRoomId);
+                console.log('🔍 [FRONTEND] Match:', currentRoom && messageRoomId === currentRoom._id);
+
                 if (currentRoom && messageRoomId === currentRoom._id) {
+                    console.log('✅ [FRONTEND] Room matched! Adding message to UI');
                     setMessages(prev => {
                         // Avoid duplicates
                         if (prev.some(m => m._id === data.message._id)) {
+                            console.log('⚠️ [FRONTEND] Duplicate message, skipping');
                             return prev;
                         }
+                        console.log('💬 [FRONTEND] Message added to state');
                         return [...prev, data.message];
                     });
+                } else {
+                    console.log('❌ [FRONTEND] Room not matched or no current room');
                 }
             }
         });

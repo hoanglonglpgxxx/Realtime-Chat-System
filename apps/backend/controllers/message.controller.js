@@ -55,8 +55,13 @@ exports.sendMessage = async (req, res) => {
             message: populatedMessage,
         });
 
+        console.log('\n📤 [BACKEND] Publishing to Redis channel: mits_chat_event');
+        console.log('🎯 [BACKEND] Event type:', redisPayload.eventType);
+        console.log('🏠 [BACKEND] Room ID:', roomId);
+        console.log('🔐 [BACKEND] HMAC signature:', redisPayload.signature.substring(0, 20) + '...');
+
         await redis.publish('mits_chat_event', JSON.stringify(redisPayload));
-        console.log('📤 Published to Redis with HMAC:', redisPayload.eventType);
+        console.log('✅ [BACKEND] Published to Redis successfully');
 
         res.status(201).send({
             message: populatedMessage,

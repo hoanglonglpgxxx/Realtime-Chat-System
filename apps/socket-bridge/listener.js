@@ -32,10 +32,12 @@ function registerHandlers(ioInstance) {
 
                 // Join room để nhận tin nhắn real-time
                 socket.join(fullRoomId);
+                console.log('\n🔗 [JOIN] User', userId, 'joined room:', fullRoomId);
                 debugLog(clientIp, `User ${userId} joined ${fullRoomId}`);
 
                 // Phản hồi lại client là đã join thành công
                 socket.emit('joinedRoom', { roomId, status: 'success' });
+                console.log('✅ [JOIN] Confirmation sent to client');
 
             } catch (err) {
                 debugLog(clientIp, `Error joining room: ${err.message}`);

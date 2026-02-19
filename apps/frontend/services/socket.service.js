@@ -72,8 +72,8 @@ class SocketService {
             return;
         }
 
+        console.log(`\n🔗 [SOCKET-SERVICE] Emitting joinRoom event for: ${roomId}`);
         this.socket.emit('joinRoom', { roomId });
-        console.log(`🔗 Joining room: ${roomId}`);
     }
 
     /**
@@ -94,8 +94,11 @@ class SocketService {
     onNewMessage(callback) {
         if (!this.socket) return;
 
+        console.log('🎧 [SOCKET-SERVICE] Registering listener for: new_message');
+
         this.socket.on('new_message', (data) => {
-            console.log('📨 New message received:', data);
+            console.log('🔔 [SOCKET-SERVICE] Raw event received: new_message');
+            console.log('📦 [SOCKET-SERVICE] Raw data:', data);
             callback(data);
         });
     }

@@ -63,32 +63,39 @@ exports.subscribeAndVerifyEvents = (io, pubClient, subClient) => {
     // nên ta cần duplicate hoặc dùng chung cẩn thận. Ở đây ta dùng subClient đã có.
 
     subClient.subscribe(config.redisChannel, async (rawMessage) => {
+        console.log('\n🔔 [REDIS] Raw message received from channel:', config.redisChannel);
+        console.log('📦 [REDIS] Raw payload:', rawMessage.substring(0, 200));
+
         let message;
         try {
             message = JSON.parse(rawMessage);
         } catch (e) {
-            debugLog('ALERT', 'Invalid JSON from Redis:', rawMessage);
+            debugLog('ALERT', '❌ Invalid JSON from Redis:', rawMessage);
             return;
         }
 
         const { nonce, eventTime, signature, eventType, ...payload } = message;
+        console.log('🔍 [HMAC] Checking event:', eventType, 'roomId:', payload.chatRoomId);
 
         // 1. Security Checks (Bảo vệ Socket Server khỏi fake events)
         const timeDifference = Math.abs(Date.now() / 1000 - eventTime);
         if (timeDifference > MAX_TIME_DIFF_SECONDS) {
-            debugLog('ALERT', `Timestamp rejected. Diff: ${timeDifference}s`);
+            console.log('❌ [HMAC] Timestamp rejected. Diff:', timeDifference + 's');
             return;
         }
+        console.log('✅ [HMAC] Timestamp valid');
 
         if (await isNonceUsed(pubClient, nonce)) {
-            debugLog('ALERT', `Replay attack detected. Nonce: ${nonce}`);
+            console.log('❌ [HMAC] Replay attack detected. Nonce:', nonce);
             return;
         }
+        console.log('✅ [HMAC] Nonce valid');
 
         if (!verifyHMAC(message, signature, APP_SECRET_KEY)) {
-            debugLog('ALERT', 'Invalid Signature from Redis message');
+            console.log('❌ [HMAC] Invalid signature');
             return;
         }
+        console.log('✅ [HMAC] Signature verified!');
 
         // 2. Event Processing
         debugLog('REDIS_EVENT', `Received '${eventType}' for room '${payload.chatRoomId || 'GLOBAL'}'`);
@@ -118,8 +125,16 @@ exports.subscribeAndVerifyEvents = (io, pubClient, subClient) => {
 
             // CASE B: Broadcast vào Room
             if (fullRoomId) {
+                console.log('📢 [SOCKET] Emitting to room:', fullRoomId);
+                console.log('📤 [SOCKET] Event type:', eventType);
+                console.log('📦 [SOCKET] Payload:', JSON.stringify(finalPayload).substring(0, 200));
+
                 // Emit sự kiện chính vào Room
+                const socketsInRoom = await io.in(fullRoomId).fetchSockets();
+                console.log('👥 [SOCKET] Sockets in room ' + fullRoomId + ':', socketsInRoom.length);
+
                 io.to(fullRoomId).emit(eventType, finalPayload);
+                console.log('✅ [SOCKET] Event emitted!');
 
                 // Logic thông báo (Notification) cho người không online trong room
                 // (Logic này tùy thuộc vào việc Client có join room hay chưa)
