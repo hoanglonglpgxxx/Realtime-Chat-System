@@ -18,6 +18,12 @@ export default function ChatPage() {
 
     const messagesEndRef = useRef(null);
     const socketService = useRef(null);
+    const selectedRoomRef = useRef(null);
+
+    // Update ref when selectedRoom changes
+    useEffect(() => {
+        selectedRoomRef.current = selectedRoom;
+    }, [selectedRoom]);
 
     // Auto scroll xuống dưới cùng khi có tin nhắn mới
     useEffect(() => {
@@ -66,8 +72,16 @@ export default function ChatPage() {
                     ? data.message.room._id
                     : data.message.room;
 
-                if (selectedRoom && messageRoomId === selectedRoom._id) {
-                    setMessages(prev => [...prev, data.message]);
+                // Use ref to get latest selectedRoom value
+                const currentRoom = selectedRoomRef.current;
+                if (currentRoom && messageRoomId === currentRoom._id) {
+                    setMessages(prev => {
+                        // Avoid duplicates
+                        if (prev.some(m => m._id === data.message._id)) {
+                            return prev;
+                        }
+                        return [...prev, data.message];
+                    });
                 }
             }
         });
