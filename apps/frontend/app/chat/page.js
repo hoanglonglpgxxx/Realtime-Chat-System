@@ -59,9 +59,16 @@ export default function ChatPage() {
 
         // Listen for new messages
         socketService.current.onNewMessage((data) => {
-            console.log('📨 New message:', data);
-            if (data.message && selectedRoom && data.message.room === selectedRoom._id) {
-                setMessages(prev => [...prev, data.message]);
+            console.log('📨 New message received:', data);
+            if (data.message) {
+                // Handle both populated room (object) and room ID (string)
+                const messageRoomId = typeof data.message.room === 'object'
+                    ? data.message.room._id
+                    : data.message.room;
+
+                if (selectedRoom && messageRoomId === selectedRoom._id) {
+                    setMessages(prev => [...prev, data.message]);
+                }
             }
         });
     };
