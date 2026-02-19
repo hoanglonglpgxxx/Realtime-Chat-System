@@ -118,6 +118,19 @@ exports.subscribeAndVerifyEvents = (io, pubClient, subClient) => {
 
             const fullRoomId = payload.chatRoomId ? `room:${payload.chatRoomId}` : null;
 
+            // For new_message event, reconstruct message object from simple fields
+            if (eventType === 'new_message' && payload.messageId) {
+                finalPayload.message = {
+                    _id: payload.messageId,
+                    room: payload.chatRoomId,
+                    sender: payload.senderId,
+                    content: payload.content,
+                    type: payload.type,
+                    createdAt: new Date(payload.timestamp),
+                };
+                console.log('📝 [SOCKET] Reconstructed message from simple fields');
+            }
+
             // CASE A: Force Join (API yêu cầu User join room ngay lập tức)
             if (eventType === 'forceJoinRoom') {
                 const { userIds, room } = payload;

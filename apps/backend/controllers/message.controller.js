@@ -49,10 +49,15 @@ exports.sendMessage = async (req, res) => {
             .lean();
 
         // PUBLISH event đến Redis để Socket.IO xử lý với HMAC signature
+        // Use simple fields instead of populated message to ensure canonical string consistency
         const redisPayload = signMessage({
             eventType: 'new_message',
             chatRoomId: roomId,
-            message: populatedMessage,
+            messageId: newMessage._id.toString(),
+            senderId: senderId.toString(),
+            content: content,
+            type: type,
+            timestamp: newMessage.createdAt.getTime(),
         });
 
         console.log('\n📤 [BACKEND] Publishing to Redis channel: mits_chat_event');
