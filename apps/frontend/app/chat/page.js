@@ -190,8 +190,6 @@ export default function ChatPage() {
 
             const data = await response.json();
             if (data.success && data.message) {
-                // Message will come via socket, but add optimistically
-                setMessages(prev => [...prev, data.message]);
                 setInputText("");
             }
         } catch (error) {
