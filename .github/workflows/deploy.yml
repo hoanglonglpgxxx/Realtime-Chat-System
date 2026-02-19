@@ -36,9 +36,12 @@ jobs:
           context: ./apps/frontend
           push: true
           no-cache: true
+          pull: true
           build-args: |
             SOCKET_URL=${{ secrets.SOCKET_URL }}
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:${{ github.sha }}
 
       - name: Build and Push Socket Bridge
         uses: docker/build-push-action@v4
@@ -100,8 +103,30 @@ jobs:
             echo "SOCKET_URL=${{ secrets.SOCKET_URL }}" >> .env
             echo "HMAC_SECRET_KEY=${{ secrets.HMAC_SECRET_KEY }}" >> .env
 
+            # Force remove old containers and images
+            echo "=== Removing old containers and images ==="
+            docker compose down --remove-orphans
+            docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest || true
+            docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/chat-backend:latest || true
+
+            # Pull fresh images
+            echo "=== Pulling fresh images ==="
             docker compose pull
+
+            # Start with force recreate
+            echo "=== Starting containers ==="
             docker compose up -d --force-recreate --remove-orphans
+
+            # Wait for services to be healthy
+            sleep 10
+
+            # Show status
+            echo "=== Container Status ==="
+            docker ps --format "table {{.Names}}\t{{.Status}}"
+
+            # Check frontend logs
+            echo "=== Frontend Logs (last 20 lines) ==="
+            docker logs frontend_chat --tail 20 || true
 
       # --- 4. DEPLOY VM 2 (Database & Socket Bridge) ---
       - name: Deploy to VM 2 via VM 1
