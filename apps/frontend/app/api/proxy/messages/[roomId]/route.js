@@ -11,7 +11,7 @@ if (process.env.NODE_ENV !== 'production') {
  */
 export async function GET(request, { params }) {
     try {
-        const { roomId } = params;
+        const { roomId } = await params;
         const cookieStore = await cookies();
         const token = cookieStore.get('token')?.value;
 
