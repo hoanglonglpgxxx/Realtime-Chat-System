@@ -36,7 +36,10 @@ async function isNonceUsed(pubClient, nonce) {
 function verifyHMAC(payload, receivedSignature, secret) {
     try {
         let dataToVerify = typeof payload === 'string' ? JSON.parse(payload) : { ...payload };
+
+        // Remove fields that are not part of HMAC signature
         if (dataToVerify.signature) delete dataToVerify.signature;
+        if (dataToVerify.senderInfo) delete dataToVerify.senderInfo; // Added after signing
 
         const sortedData = sortObject(dataToVerify);
         // Lưu ý: Cần thống nhất cách replace slash với bên Express API
