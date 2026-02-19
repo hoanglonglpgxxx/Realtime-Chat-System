@@ -25,26 +25,27 @@ export default function LoginForm() {
       });
 
       const result = await response.json();
+      console.log("Login result:", result);
 
       if (response.ok) {
         // 2. CHỈ lưu thông tin User (KHÔNG lưu token vì đã ở HttpOnly Cookie)
         if (result.user) {
-          localStorage.setItem(
-            "user",
-            JSON.stringify({
-              id: result.user.id,
-              username: result.user.username,
-              email: result.user.email,
-              fullName: result.user.fullName,
-              avatar: result.user.avatar,
-              roles: result.user.roles,
-            }),
-          );
+          const userData = {
+            id: result.user.id,
+            username: result.user.username,
+            email: result.user.email,
+            fullName: result.user.fullName,
+            avatar: result.user.avatar,
+            roles: result.user.roles,
+          };
+          console.log("Saving user to localStorage:", userData);
+          localStorage.setItem("user", JSON.stringify(userData));
         }
         toast.success(result.message || "Đăng nhập thành công!");
 
-        // 3. Chuyển hướng người dùng vào trang Dashboard
-        router.push("/dashboard");
+        // 3. Chuyển hướng - dùng window.location để force reload và trigger middleware
+        console.log("Redirecting to dashboard...");
+        window.location.href = "/dashboard";
       } else {
         // Hiển thị lỗi từ Backend trả về thông qua Proxy
         toast.error(result.message || "Đăng nhập thất bại!");

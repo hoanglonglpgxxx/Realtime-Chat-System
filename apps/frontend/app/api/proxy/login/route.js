@@ -16,6 +16,7 @@ export async function POST(request) {
         });
 
         const data = await backendResponse.json();
+        console.log('Backend login response:', { ...data, accessToken: data.accessToken ? '***' : undefined });
 
         if (!backendResponse.ok) {
             return NextResponse.json(data, { status: backendResponse.status });
@@ -32,11 +33,13 @@ export async function POST(request) {
             name: 'token',
             value: data.accessToken,
             httpOnly: true, // Chặn JavaScript truy cập (Chống XSS)
-            secure: process.env.NODE_ENV === 'production', // Chỉ gửi qua HTTPS khi chạy thật
-            sameSite: 'strict', // Chống tấn công CSRF
+            secure: false, // Tạm thời set false cho development
+            sameSite: 'lax', // Đổi từ strict sang lax để cookie được gửi sau redirect
             maxAge: 60 * 60 * 24, // Hết hạn sau 24h (khớp với JWT)
             path: '/', // Có hiệu lực cho toàn bộ website
         });
+
+        console.log('✅ Cookie set:', { name: 'token', hasValue: !!data.accessToken });
 
         return response;
     } catch (error) {

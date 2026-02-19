@@ -13,8 +13,8 @@ export async function POST(request) {
             name: 'token',
             value: '',
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: false, // Đồng nhất với login
+            sameSite: 'lax', // Đồng nhất với login
             maxAge: 0, // Xóa cookie ngay lập tức
             path: '/',
         });
