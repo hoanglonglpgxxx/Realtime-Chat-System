@@ -9,7 +9,9 @@ const MAX_TIME_DIFF_SECONDS = 60;
 const ALLOWED_EVENTS = [
     'newMsg', 'userTyping', 'userStopTyping',
     'deleteMsg', 'pinMsg', 'editMsg', 'reactMsg',
-    'roomUpdated', 'notification', 'forceJoinRoom'
+    'roomUpdated', 'notification', 'forceJoinRoom',
+    // Chat events mới
+    'new_message', 'message_read', 'typing', 'stop_typing'
 ];
 
 // --- Helper Functions ---

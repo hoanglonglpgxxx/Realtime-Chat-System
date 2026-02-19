@@ -5,6 +5,8 @@ const cors = require("cors");
 const connectDB = require('./config/db.config');
 const authRouter = require('./routes/auth.routes');
 const userRouter = require('./routes/user.routes');
+const roomRouter = require('./routes/room.routes');
+const messageRouter = require('./routes/message.routes');
 // const { seedingRoomTypes } = require('./test/seeding.test');
 
 
@@ -57,3 +59,5 @@ mongoose.connection.once('open', async () => {
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/user', userRouter);
+app.use('/api/v1/rooms', roomRouter);
+app.use('/api/v1/messages', messageRouter);

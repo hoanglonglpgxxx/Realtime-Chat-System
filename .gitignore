@@ -1,6 +1,3 @@
 /node_modules
 .env
-/notes/CHANGES_SUMMARY.md
-/notes/JWT_AUTH_GUIDE.md
-/notes/README_IMPROVEMENTS.md
-/notes/DEBUG_LOGIN.md
+/notes

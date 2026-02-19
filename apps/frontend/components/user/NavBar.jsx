@@ -15,7 +15,7 @@ const Navbar = () => {
   return (
     <header className="navbar">
       <div className="navbar-brand">
-        <Link href="/">MyBrand</Link>
+        <Link href="/">Realtime Chat System</Link>
       </div>
       <button
         className="menu-toggle"

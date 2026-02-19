@@ -1,0 +1,150 @@
+const db = require('../models');
+const Message = db.message;
+const Room = db.room;
+const redis = require('../config/redis.config'); // Sẽ tạo file này
+
+/**
+ * Gửi tin nhắn
+ * @route POST /api/v1/messages/send
+ */
+exports.sendMessage = async (req, res) => {
+    try {
+        const senderId = req.userId; // Từ auth middleware
+        const { roomId, content, type = 'text' } = req.body;
+
+        if (!roomId || !content) {
+            return res.status(400).send({ message: "roomId and content are required" });
+        }
+
+        // Kiểm tra room có tồn tại và user có trong room không
+        const room = await Room.findById(roomId);
+        if (!room) {
+            return res.status(404).send({ message: "Room not found" });
+        }
+
+        if (!room.members.includes(senderId)) {
+            return res.status(403).send({ message: "You are not a member of this room" });
+        }
+
+        // Tạo message mới
+        const newMessage = new Message({
+            room: roomId,
+            sender: senderId,
+            content,
+            type,
+            readBy: [senderId], // Người gửi đã "đọc" tin nhắn của mình
+        });
+
+        await newMessage.save();
+
+        // Cập nhật lastMessage của room
+        room.lastMessage = newMessage._id;
+        await room.save();
+
+        // Populate để có đầy đủ thông tin
+        const populatedMessage = await Message.findById(newMessage._id)
+            .populate('sender', 'username fullName avatar')
+            .populate('room', 'name roomType members');
+
+        // PUBLISH event đến Redis để Socket.IO xử lý
+        const redisPayload = JSON.stringify({
+            event: 'new_message',
+            data: {
+                message: populatedMessage,
+                roomId: roomId,
+            }
+        });
+
+        await redis.publish('chat:events', redisPayload);
+        console.log('📤 Published to Redis:', redisPayload);
+
+        res.status(201).send({
+            message: populatedMessage,
+            success: true,
+        });
+    } catch (err) {
+        console.error('Error sending message:', err);
+        res.status(500).send({ message: err.message });
+    }
+};
+
+/**
+ * Lấy tin nhắn trong room
+ * @route GET /api/v1/messages/:roomId
+ */
+exports.getMessages = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { roomId } = req.params;
+        const { limit = 50, before } = req.query; // Pagination
+
+        // Kiểm tra user có trong room không
+        const room = await Room.findById(roomId);
+        if (!room) {
+            return res.status(404).send({ message: "Room not found" });
+        }
+
+        if (!room.members.includes(userId)) {
+            return res.status(403).send({ message: "Access denied" });
+        }
+
+        // Query messages
+        const query = {
+            room: roomId,
+            isDeleted: false,
+        };
+
+        // Pagination: lấy tin nhắn trước một timestamp
+        if (before) {
+            query.createdAt = { $lt: new Date(before) };
+        }
+
+        const messages = await Message.find(query)
+            .sort({ createdAt: -1 }) // Mới nhất trước
+            .limit(parseInt(limit))
+            .populate('sender', 'username fullName avatar');
+
+        res.status(200).send({
+            messages: messages.reverse(), // Đảo lại để cũ nhất lên đầu
+            hasMore: messages.length === parseInt(limit),
+        });
+    } catch (err) {
+        res.status(500).send({ message: err.message });
+    }
+};
+
+/**
+ * Đánh dấu tin nhắn đã đọc
+ * @route PUT /api/v1/messages/:messageId/read
+ */
+exports.markAsRead = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { messageId } = req.params;
+
+        const message = await Message.findById(messageId);
+        if (!message) {
+            return res.status(404).send({ message: "Message not found" });
+        }
+
+        // Thêm userId vào readBy nếu chưa có
+        if (!message.readBy.includes(userId)) {
+            message.readBy.push(userId);
+            await message.save();
+
+            // Publish read receipt event
+            await redis.publish('chat:events', JSON.stringify({
+                event: 'message_read',
+                data: {
+                    messageId,
+                    userId,
+                    roomId: message.room,
+                }
+            }));
+        }
+
+        res.status(200).send({ success: true });
+    } catch (err) {
+        res.status(500).send({ message: err.message });
+    }
+};
