@@ -36,6 +36,8 @@ jobs:
           context: ./apps/frontend
           push: true
           no-cache: true
+          build-args: |
+            SOCKET_URL=${{ secrets.SOCKET_URL }}
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/chat-frontend:latest
 
       - name: Build and Push Socket Bridge
@@ -96,6 +98,7 @@ jobs:
             echo "DB_URI=${{ secrets.DB_URI }}" >> .env
             echo "BE_URL=${{ secrets.BE_URL }}" >> .env
             echo "SOCKET_URL=${{ secrets.SOCKET_URL }}" >> .env
+            echo "HMAC_SECRET_KEY=${{ secrets.HMAC_SECRET_KEY }}" >> .env
 
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans
@@ -140,6 +143,7 @@ jobs:
                 echo 'REDIS_PASS=${{ secrets.REDIS_PASS }}' >> .env
                 echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env
                 echo 'NODE_ENV=${{ secrets.NODE_ENV }}' >> .env
+                echo 'HMAC_SECRET_KEY=${{ secrets.HMAC_SECRET_KEY }}' >> .env
                 echo 'APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }}' >> .env
                 echo 'DB_URI=${{ secrets.DB_URI }}' >> .env
                 echo 'PORT_MONGODB=${{ secrets.PORT_MONGODB }}' >> .env
