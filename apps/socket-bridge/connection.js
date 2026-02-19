@@ -43,10 +43,22 @@ async function initializeServer() {
 
         // Socket.IO Setup với Redis Adapter (để scale nhiều node nếu cần)
         io = socketio(server, {
+            path: '/socket.io', // Must match client path and nginx location
             cors: { origin: "*" }, // Chú ý: Production nên limit origin
             adapter: createAdapter(pubClient, subClient),
             transports: ['websocket', 'polling']
         });
+
+        // Debug middleware
+        io.engine.on("initial_headers", (headers, req) => {
+            debugLog(req.connection.remoteAddress, `Socket.IO initial request from ${req.url}`);
+        });
+
+        io.engine.on("connection_error", (err) => {
+            debugLog('NO_ADDR', `Socket.IO connection error: ${err.message}`);
+        });
+
+        debugLog('NO_ADDR', `Socket.IO initialized with path: /socket.io`);
 
         // Test API endpoint để check health
         app.get('/', (req, res) => res.send('Socket Server is Running'));
