@@ -101,7 +101,7 @@ exports.subscribeAndVerifyEvents = (io, pubClient, subClient) => {
                 timestamp: Date.now()
             };
 
-            const fullRoomId = payload.chatRoomId ? `group:${payload.chatRoomId}` : null;
+            const fullRoomId = payload.chatRoomId ? `room:${payload.chatRoomId}` : null;
 
             // CASE A: Force Join (API yêu cầu User join room ngay lập tức)
             if (eventType === 'forceJoinRoom') {
@@ -109,9 +109,9 @@ exports.subscribeAndVerifyEvents = (io, pubClient, subClient) => {
                 if (userIds && room) {
                     userIds.forEach(uid => {
                         // Tìm socket của user và join room
-                        io.in(`user:${uid}`).socketsJoin(`group:${room}`);
+                        io.in(`user:${uid}`).socketsJoin(`room:${room}`);
                     });
-                    debugLog('ACTION', `Forced ${userIds.length} users to join group:${room}`);
+                    debugLog('ACTION', `Forced ${userIds.length} users to join room:${room}`);
                 }
                 return;
             }
