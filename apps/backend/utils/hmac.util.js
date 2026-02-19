@@ -45,6 +45,9 @@ if (!SECRET_KEY) {
     console.warn('⚠️  Generated key:', SECRET_KEY);
 }
 
+console.log('🔑 [BACKEND-HMAC] Secret Key loaded (first 10 chars):', SECRET_KEY.substring(0, 10));
+console.log('🔑 [BACKEND-HMAC] Secret Key source:', process.env.HMAC_SECRET_KEY ? 'ENV VAR' : 'AUTO-GENERATED or FALLBACK');
+
 /**
  * Sort object để đảm bảo canonical string nhất quán
  */

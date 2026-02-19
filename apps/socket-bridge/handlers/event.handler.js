@@ -42,15 +42,23 @@ function verifyHMAC(payload, receivedSignature, secret) {
         // Lưu ý: Cần thống nhất cách replace slash với bên Express API
         let canonicalString = JSON.stringify(sortedData).replace(/\//g, '\\/');
 
+        console.log('🔐 [HMAC-VERIFY] Secret key (first 10 chars):', secret.substring(0, 10));
+        console.log('📝 [HMAC-VERIFY] Canonical string (first 200 chars):', canonicalString.substring(0, 200));
+
         const expectedSignature = crypto.createHmac('sha256', secret)
             .update(canonicalString)
             .digest('hex');
+
+        console.log('🎯 [HMAC-VERIFY] Expected signature:', expectedSignature.substring(0, 20) + '...');
+        console.log('📨 [HMAC-VERIFY] Received signature:', receivedSignature.substring(0, 20) + '...');
+        console.log('🔍 [HMAC-VERIFY] Signatures match:', expectedSignature === receivedSignature);
 
         return crypto.timingSafeEqual(
             Buffer.from(receivedSignature, 'hex'),
             Buffer.from(expectedSignature, 'hex')
         );
     } catch (e) {
+        console.error("❌ [HMAC-VERIFY] Error:", e.message);
         debugLog("HMAC Error:", e.message);
         return false;
     }

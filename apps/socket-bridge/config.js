@@ -59,6 +59,9 @@ if (!APP_SECRET_KEY) {
     debugLog('NO_ADDR', '⚠️  Set HMAC_SECRET_KEY env var for production!');
 }
 
+console.log('🔑 [CONFIG] HMAC Secret Key loaded (first 10 chars):', APP_SECRET_KEY.substring(0, 10));
+console.log('🔑 [CONFIG] HMAC Secret Key source:', process.env.HMAC_SECRET_KEY ? 'ENV VAR' : 'AUTO-GENERATED or FALLBACK');
+
 module.exports = {
     config,
     APP_SECRET_KEY
