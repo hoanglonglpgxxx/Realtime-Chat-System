@@ -7,6 +7,10 @@ RUN npm install
 
 COPY . .
 
+# Build arguments for Next.js
+ARG SOCKET_URL
+ENV NEXT_PUBLIC_SOCKET_URL=$SOCKET_URL
+
 # Build ứng dụng frontend
 RUN npm run build
 

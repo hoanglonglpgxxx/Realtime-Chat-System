@@ -1,7 +1,8 @@
 const db = require('../models');
 const Message = db.message;
 const Room = db.room;
-const redis = require('../config/redis.config'); // Sẽ tạo file này
+const redis = require('../config/redis.config');
+const { signMessage } = require('../utils/hmac.util');
 
 /**
  * Gửi tin nhắn
@@ -46,17 +47,15 @@ exports.sendMessage = async (req, res) => {
             .populate('sender', 'username fullName avatar')
             .populate('room', 'name roomType members');
 
-        // PUBLISH event đến Redis để Socket.IO xử lý
-        const redisPayload = JSON.stringify({
-            event: 'new_message',
-            data: {
-                message: populatedMessage,
-                roomId: roomId,
-            }
+        // PUBLISH event đến Redis để Socket.IO xử lý với HMAC signature
+        const redisPayload = signMessage({
+            eventType: 'new_message',
+            chatRoomId: roomId,
+            message: populatedMessage,
         });
 
-        await redis.publish('chat:events', redisPayload);
-        console.log('📤 Published to Redis:', redisPayload);
+        await redis.publish('mits_chat_event', JSON.stringify(redisPayload));
+        console.log('📤 Published to Redis with HMAC:', redisPayload.eventType);
 
         res.status(201).send({
             message: populatedMessage,
@@ -132,15 +131,15 @@ exports.markAsRead = async (req, res) => {
             message.readBy.push(userId);
             await message.save();
 
-            // Publish read receipt event
-            await redis.publish('chat:events', JSON.stringify({
-                event: 'message_read',
-                data: {
-                    messageId,
-                    userId,
-                    roomId: message.room,
-                }
-            }));
+            // Publish read receipt event with HMAC
+            const readPayload = signMessage({
+                eventType: 'message_read',
+                chatRoomId: message.room.toString(),
+                messageId,
+                userId,
+            });
+
+            await redis.publish('mits_chat_event', JSON.stringify(readPayload));
         }
 
         res.status(200).send({ success: true });

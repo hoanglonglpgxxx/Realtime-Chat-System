@@ -13,11 +13,18 @@ services:
       - REDIS_HOST=${VM2_INTERNAL_IP}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASS}
+      - HMAC_SECRET_KEY=${HMAC_SECRET_KEY}
+    volumes:
+      - hmac_shared:/app/shared  # Shared volume cho HMAC secret
     restart: always
 
   frontend_chat:
     image: ${DOCKERHUB_USERNAME}/chat-frontend:latest
     container_name: frontend_chat
+    build:
+      context: ./frontend
+      args:
+        - SOCKET_URL=${SOCKET_URL}
     environment:
       - BE_URL=${BE_URL}
       - SOCKET_URL=${SOCKET_URL}
@@ -36,3 +43,6 @@ services:
     depends_on:
       - backend_chat
       - frontend_chat
+
+volumes:
+  hmac_shared:

@@ -35,11 +35,15 @@ services:
       - REDIS_HOST=redis_chat
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASS}
+      - HMAC_SECRET_KEY=${HMAC_SECRET_KEY}
     ports:
       - "5000:5000" # Mở cổng 5000 để Nginx VM 1 gọi vào qua IP nội bộ
+    volumes:
+      - hmac_shared:/app/shared  # Shared volume cho HMAC secret
     depends_on:
       - redis_chat
 
 volumes:
   mongo_data:
   redis_data:
+  hmac_shared:
