@@ -17,11 +17,12 @@ const nextConfig = {
     NEXT_PUBLIC_SOCKET_URL: process.env.SOCKET_URL,
   },
   async rewrites() {
-    let backendPort = process.env.BE_PORT || 5000;
+    // Use BE_URL from env or fallback to backend container name
+    const backendUrl = process.env.BE_URL || 'http://backend_chat:5000';
     return [
       {
         source: '/api/:path*',
-        destination: `http://localhost:${backendPort}/api/:path*`,
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
