@@ -20,7 +20,7 @@ services:
     container_name: frontend_chat
     environment:
       - BE_URL=${BE_URL}
-      - NEXT_PUBLIC_SOCKET_URL=${SOCKET_URL}
+      - SOCKET_URL=${SOCKET_URL}
     ports:
       - "127.0.0.1:${FE_PORT}:3000"  # Bind to localhost only
     restart: always
