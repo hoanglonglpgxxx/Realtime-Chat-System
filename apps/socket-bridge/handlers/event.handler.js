@@ -123,7 +123,7 @@ exports.subscribeAndVerifyEvents = (io, pubClient, subClient) => {
                 finalPayload.message = {
                     _id: payload.messageId,
                     room: payload.chatRoomId,
-                    sender: payload.senderId,
+                    sender: payload.senderInfo || payload.senderId, // Use populated sender if available
                     content: payload.content,
                     type: payload.type,
                     createdAt: new Date(payload.timestamp),
