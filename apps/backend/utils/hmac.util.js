@@ -86,6 +86,10 @@ function signMessage(payload) {
         .update(canonicalString)
         .digest('hex');
 
+    console.log('🔐 [HMAC-SIGN] Secret key (first 10 chars):', SECRET_KEY.substring(0, 10));
+    console.log('📝 [HMAC-SIGN] Canonical string (first 200 chars):', canonicalString.substring(0, 200));
+    console.log('🎯 [HMAC-SIGN] Generated signature:', signature.substring(0, 20) + '...');
+
     return {
         ...messageToSign,
         signature,
