@@ -7,7 +7,7 @@ const authRouter = require('./routes/auth.routes');
 const userRouter = require('./routes/user.routes');
 const roomRouter = require('./routes/room.routes');
 const messageRouter = require('./routes/message.routes');
-// const { seedingRoomTypes } = require('./test/seeding.test');
+const { seedingRoles, seedingRoomTypes } = require('./test/seeding.test');
 
 
 if (process.env.NODE_ENV !== 'production') {
@@ -47,7 +47,11 @@ mongoose.connection.once('open', async () => {
 
     try {
         const result = await mongoose.connection.db.admin().listDatabases();
-        // seedingRoomTypes();
+
+        // Seed initial data if not exists
+        await seedingRoles();
+        await seedingRoomTypes();
+
     } catch (err) {
         console.error('Error listing databases:', err);
     }
