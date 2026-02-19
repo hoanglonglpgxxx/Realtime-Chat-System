@@ -80,16 +80,9 @@ export default function ChatPage() {
                 console.log('🔍 [FRONTEND] Match:', currentRoom && messageRoomId === currentRoom._id);
 
                 if (currentRoom && messageRoomId === currentRoom._id) {
-                    console.log('✅ [FRONTEND] Room matched! Adding message to UI');
-                    setMessages(prev => {
-                        // Avoid duplicates
-                        if (prev.some(m => m._id === data.message._id)) {
-                            console.log('⚠️ [FRONTEND] Duplicate message, skipping');
-                            return prev;
-                        }
-                        console.log('💬 [FRONTEND] Message added to state');
-                        return [...prev, data.message];
-                    });
+                    console.log('✅ [FRONTEND] Room matched! Refetching messages...');
+                    // Refetch messages to get properly populated data
+                    loadMessages(currentRoom._id);
                 } else {
                     console.log('❌ [FRONTEND] Room not matched or no current room');
                 }
