@@ -16,15 +16,22 @@ class SocketService {
             return this.socket;
         }
 
-        const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+        // Use relative path to go through Nginx proxy
+        const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
+
+        console.log('🔌 Connecting to Socket.IO:', SOCKET_URL);
 
         this.socket = io(SOCKET_URL, {
+            path: '/socket.io',
             auth: {
                 userId: userId,
             },
+            transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionAttempts: 5,
+            upgrade: true,
+            rememberUpgrade: true,
         });
 
         this.socket.on('connect', () => {
