@@ -74,10 +74,11 @@ jobs:
             echo "=== Files in sync_tmp/apps/nginx/conf.d/ ==="
             ls -la /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/ || echo "Source folder not found!"
 
-            # Copy nginx config (use sudo to remove root-owned folder)
+            # Copy nginx config (use sudo for all operations)
             sudo rm -rf nginx/conf.d
-            mkdir -p nginx/conf.d
-            cp /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/default.conf nginx/conf.d/
+            sudo mkdir -p nginx/conf.d
+            sudo cp /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/default.conf nginx/conf.d/
+            sudo chown -R mitsne:mitsne nginx/
 
             # Verify file copied
             echo "=== Files in apps/nginx/conf.d/ ==="

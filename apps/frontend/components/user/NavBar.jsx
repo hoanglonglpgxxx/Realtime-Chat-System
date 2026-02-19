@@ -47,7 +47,7 @@ const Navbar = () => {
             </>
           )}
 
-          {!isAuthenticated && !loading && (
+          {/* {!isAuthenticated && !loading && (
             <>
               <li>
                 <Link href="/about" onClick={() => setIsOpen(false)}>
@@ -60,7 +60,7 @@ const Navbar = () => {
                 </Link>
               </li>
             </>
-          )}
+          )} */}
         </ul>
 
         {/* User section */}
