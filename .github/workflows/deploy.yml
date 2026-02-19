@@ -70,15 +70,19 @@ jobs:
             # Cập nhật file config và nginx
             cp /home/mitsne/realtime-chat/sync_tmp/apps/docker-compose.yml .
 
-            # Copy nginx config (create folder first)
+            # Debug: Check source files
+            echo "=== Files in sync_tmp/apps/nginx/conf.d/ ==="
+            ls -la /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/ || echo "Source folder not found!"
+
+            # Copy nginx config (remove old, create new)
+            rm -rf nginx/conf.d
             mkdir -p nginx/conf.d
-            cp -r /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/* nginx/conf.d/
+            cp /home/mitsne/realtime-chat/sync_tmp/apps/nginx/conf.d/default.conf nginx/conf.d/ || echo "Failed to copy nginx config!"
 
             # Verify file copied
+            echo "=== Files in apps/nginx/conf.d/ ==="
             ls -la nginx/conf.d/
-
-            # TẠO .ENV CHO VM 1 (Dùng echo để không lỗi format)
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+            cat nginx/conf.d/default.conf 2>&1 | head -5 || echo "default.conf not found!"
             echo "BE_PORT=${{ secrets.BE_PORT }}" >> .env
             echo "FE_PORT=${{ secrets.FE_PORT }}" >> .env
             echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
