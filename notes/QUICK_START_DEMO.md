@@ -35,7 +35,38 @@ Internet → VM1 (Public) → VM2 (Private)
 
 ## 🚀 Cách Sử Dụng Nhanh
 
-### Option 1: Chạy Tất Cả (Recommended)
+**⚠️ QUAN TRỌNG: Tests nên chạy từ LOCAL MACHINE (có gcloud CLI)**
+
+### Option 1: Chạy Từ Local Machine (Recommended)
+
+```bash
+# Từ thư mục gốc project trên PC
+cd d:\Realtime-Chat-System
+
+# Windows: Dùng Git Bash hoặc WSL
+bash tests/run-all-scenarios.sh
+
+# Hoặc chạy từng kịch bản
+bash tests/scenario1-network-isolation.sh
+```
+
+### Option 2: Chạy Trên VM1 (Requires Manual Setup)
+
+```bash
+# SSH vào VM1
+gcloud compute ssh chat-system-app --zone=us-central1-c
+
+# Setup environment variables
+export VM1_PUBLIC_IP=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
+export VM1_INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
+export VM2_INTERNAL_IP="10.128.0.X"  # TODO: Thay bằng IP thực của VM2
+
+# Run test
+cd /home/mitsne/realtime-chat
+./tests/scenario1-network-isolation.sh
+```
+
+### Option 3: Chạy Tất Cả (Master Script)
 
 ```bash
 # Từ thư mục gốc project
@@ -48,14 +79,14 @@ chmod +x tests/*.sh
 ./tests/run-all-scenarios.sh
 ```
 
-### Option 2: Chạy Từng Kịch Bản
+### Option 2: Chạy Từng Kịch Bản (Local Machine)
 
 ```bash
 # Kịch bản 1: Network Isolation (Tự động)
-./tests/scenario1-network-isolation.sh
+bash tests/scenario1-network-isolation.sh
 
 # Kịch bản 2: HttpOnly Cookie (Hướng dẫn manual)
-./tests/scenario2-httponly-cookie.sh
+bash tests/scenario2-httponly-cookie.sh
 
 # Kịch bản 3: HMAC + Replay Attack (Tự động)
 cd tests
