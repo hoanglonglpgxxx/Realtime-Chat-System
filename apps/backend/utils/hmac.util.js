@@ -96,7 +96,66 @@ function signMessage(payload) {
     };
 }
 
+/**
+ * Verify HMAC signature và nonce uniqueness
+ * @param {Object} payload - Message với signature, nonce, eventTime
+ * @param {Object} redis - Redis client để check nonce
+ * @returns {Promise<{valid: boolean, error?: string}>}
+ */
+async function verifyMessage(payload, redis) {
+    const { signature, nonce, eventTime, ...data } = payload;
+
+    // 1. Check required fields
+    if (!signature || !nonce || !eventTime) {
+        return { valid: false, error: 'Missing signature, nonce, or eventTime' };
+    }
+
+    // 2. Check timestamp (±60 seconds tolerance)
+    const currentTime = Math.floor(Date.now() / 1000);
+    const timeDiff = Math.abs(currentTime - eventTime);
+    if (timeDiff > 60) {
+        return { valid: false, error: `Timestamp expired (diff: ${timeDiff}s, max: 60s)` };
+    }
+
+    // 3. Verify HMAC signature
+    const messageToVerify = {
+        ...data,
+        nonce,
+        eventTime,
+    };
+
+    const sortedData = sortObject(messageToVerify);
+    const canonicalString = JSON.stringify(sortedData).replace(/\//g, '\\/');
+
+    const expectedSignature = crypto.createHmac('sha256', SECRET_KEY)
+        .update(canonicalString)
+        .digest('hex');
+
+    console.log('[HMAC-VERIFY] Expected signature:', expectedSignature.substring(0, 20) + '...');
+    console.log('[HMAC-VERIFY] Received signature:', signature.substring(0, 20) + '...');
+
+    if (signature !== expectedSignature) {
+        return { valid: false, error: 'Invalid HMAC signature' };
+    }
+
+    // 4. Check nonce uniqueness (replay attack prevention)
+    const nonceKey = `chat:nonce:${nonce}`;
+    const nonceExists = await redis.get(nonceKey);
+
+    if (nonceExists) {
+        return { valid: false, error: 'Nonce already used (replay attack detected)' };
+    }
+
+    // 5. Store nonce with 60s TTL
+    await redis.setex(nonceKey, 60, eventTime.toString());
+
+    console.log('[HMAC-VERIFY] ✅ Signature valid, nonce stored:', nonceKey);
+
+    return { valid: true };
+}
+
 module.exports = {
     signMessage,
+    verifyMessage,
     SECRET_KEY,
 };

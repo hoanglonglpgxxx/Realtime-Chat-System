@@ -39,8 +39,20 @@ echo ""
 
 echo -e "${BOLD}${YELLOW}⚠ SETUP: Send a legitimate message first${NC}"
 echo -e "${BLUE}   1. Go to: http://${VM1_PUBLIC_IP}:8029/chat${NC}"
-echo -e "${BLUE}   2. Send message: \"Hello World\"${NC}"
-echo -e "${BLUE}   3. Copy request data from DevTools${NC}"
+echo -e "${BLUE}   2. Open DevTools → Network tab${NC}"
+echo -e "${BLUE}   3. Send a message (e.g., \"Hello World\")${NC}"
+echo -e "${BLUE}   4. Find request: POST /api/proxy/message/send${NC}"
+echo -e "${BLUE}   5. Click on it → Payload tab${NC}"
+echo ""
+echo -e "${BOLD}${CYAN}📋 What to copy from Payload tab:${NC}"
+echo -e "${YELLOW}   • roomId${NC}      → e.g., 699748dea8449ea60d32c4f6"
+echo -e "${YELLOW}   • content${NC}     → e.g., Hello World"
+echo -e "${YELLOW}   • nonce${NC}       → e.g., a7f3e9c1b2d4f5e6... (32 chars hex)"
+echo -e "${YELLOW}   • eventTime${NC}   → e.g., 1771593915 (Unix timestamp)"
+echo -e "${YELLOW}   • signature${NC}   → e.g., 9f8e7d6c5b4a3f2... (64 chars hex)"
+echo ""
+echo -e "${BOLD}${CYAN}📋 What to copy from Cookies tab:${NC}"
+echo -e "${YELLOW}   • token${NC}       → JWT token (starts with eyJhbG...)"
 echo ""
 
 read -p "Press Enter when you have the request data ready..."
@@ -52,10 +64,10 @@ echo ""
 # Get user input
 read -p "Room ID: " ROOM_ID
 read -p "Original Content: " ORIGINAL_CONTENT
-read -p "Nonce: " NONCE
-read -p "Timestamp: " TIMESTAMP
-read -p "HMAC: " HMAC
-read -p "Cookie Token: " TOKEN
+read -p "Nonce (32 chars hex): " NONCE
+read -p "Event Time (Unix timestamp): " EVENT_TIME
+read -p "HMAC Signature (64 chars hex): " HMAC
+read -p "Cookie Token (JWT): " TOKEN
 
 echo ""
 echo -e "${BOLD}${GREEN}[SCENARIO 1] CONTENT TAMPERING${NC}"
@@ -75,8 +87,8 @@ RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${VM1_URL}/api/proxy/m
     \"roomId\": \"${ROOM_ID}\",
     \"content\": \"<script>alert('XSS')</script>\",
     \"nonce\": \"${NONCE}\",
-    \"timestamp\": ${TIMESTAMP},
-    \"hmac\": \"${HMAC}\"
+    \"eventTime\": ${EVENT_TIME},
+    \"signature\": \"${HMAC}\"
   }" 2>&1)
 
 HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
@@ -115,8 +127,8 @@ RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${VM1_URL}/api/proxy/m
     \"roomId\": \"${ROOM_ID}\",
     \"content\": \"${MALICIOUS_CONTENT}\",
     \"nonce\": \"${NONCE}\",
-    \"timestamp\": ${TIMESTAMP},
-    \"hmac\": \"${HMAC}\"
+    \"eventTime\": ${EVENT_TIME},
+    \"signature\": \"${HMAC}\"
   }" 2>&1)
 
 HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
@@ -151,8 +163,8 @@ RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${VM1_URL}/api/proxy/m
     \"roomId\": \"${ROOM_ID}\",
     \"content\": \"Hacked message\",
     \"nonce\": \"fake-nonce-123456\",
-    \"timestamp\": $(date +%s)000,
-    \"hmac\": \"${FAKE_HMAC}\"
+    \"eventTime\": $(date +%s),
+    \"signature\": \"${FAKE_HMAC}\"
   }" 2>&1)
 
 HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)

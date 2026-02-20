@@ -2,7 +2,7 @@ const db = require('../models');
 const Message = db.message;
 const Room = db.room;
 const redis = require('../config/redis.config');
-const { signMessage } = require('../utils/hmac.util');
+const { signMessage, verifyMessage } = require('../utils/hmac.util');
 
 /**
  * Gửi tin nhắn
@@ -11,11 +11,28 @@ const { signMessage } = require('../utils/hmac.util');
 exports.sendMessage = async (req, res) => {
     try {
         const senderId = req.userId; // Từ auth middleware
-        const { roomId, content, type = 'text' } = req.body;
+        const { roomId, content, type = 'text', signature, nonce, eventTime } = req.body;
 
         if (!roomId || !content) {
             return res.status(400).send({ message: "roomId and content are required" });
         }
+
+        // ✅ VERIFY HMAC SIGNATURE (Anti-replay attack)
+        if (!signature || !nonce || !eventTime) {
+            console.log('[MESSAGE-SEND] ❌ Missing HMAC fields');
+            return res.status(401).send({ message: "Unauthorized! Missing HMAC signature" });
+        }
+
+        const verificationResult = await verifyMessage(req.body, redis);
+        if (!verificationResult.valid) {
+            console.log('[MESSAGE-SEND] ❌ HMAC verification failed:', verificationResult.error);
+            return res.status(401).send({
+                message: "Unauthorized!",
+                error: verificationResult.error
+            });
+        }
+
+        console.log('[MESSAGE-SEND] ✅ HMAC verified, nonce stored');
 
         // Kiểm tra room có tồn tại và user có trong room không
         const room = await Room.findById(roomId);
