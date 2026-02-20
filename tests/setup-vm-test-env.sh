@@ -93,28 +93,34 @@ mkdir -p $TEST_DIR
 
 # Create .env file for tests
 echo -e "${YELLOW}Creating .env file...${NC}"
-cat > $TEST_DIR/.env << EOF
+cat > $TEST_DIR/.env << 'EOF'
 # VM Test Environment
-# Auto-generated: $(date)
-# Setup from VM via SSH (no GCP API calls)
+# Auto generated from setup script
+# Pure SSH workflow, no GCP API calls
 
-# VM1 (chat-system-app)
-export VM1_PUBLIC_IP=$VM1_PUBLIC
-export VM1_INTERNAL_IP=$VM1_INTERNAL
+# VM1 chat system app
+export VM1_PUBLIC_IP="__VM1_PUBLIC__"
+export VM1_INTERNAL_IP="__VM1_INTERNAL__"
 
-# VM2 (tracker-n-chat-infrastructure)
-export VM2_INTERNAL_IP=$VM2_INTERNAL
-export VM2_PUBLIC_IP=
+# VM2 tracker and chat infrastructure
+export VM2_INTERNAL_IP="__VM2_INTERNAL__"
+export VM2_PUBLIC_IP=""
 
 # Test Configuration
-export VM1_URL=http://$VM1_PUBLIC:8029
-export HMAC_SECRET_KEY=$HMAC_KEY
+export VM1_URL="http://__VM1_PUBLIC__:8029"
+export HMAC_SECRET_KEY="__HMAC_KEY__"
 
 # Ports
-export REDIS_PORT=43816
-export MONGODB_PORT=27017
-export SOCKET_PORT=5000
+export REDIS_PORT="43816"
+export MONGODB_PORT="27017"
+export SOCKET_PORT="5000"
 EOF
+
+# Replace placeholders
+sed -i "s|__VM1_PUBLIC__|$VM1_PUBLIC|g" $TEST_DIR/.env
+sed -i "s|__VM1_INTERNAL__|$VM1_INTERNAL|g" $TEST_DIR/.env
+sed -i "s|__VM2_INTERNAL__|$VM2_INTERNAL|g" $TEST_DIR/.env
+sed -i "s|__HMAC_KEY__|$HMAC_KEY|g" $TEST_DIR/.env
 
 echo -e "${GREEN}✓${NC} Created: $TEST_DIR/.env"
 echo ""
