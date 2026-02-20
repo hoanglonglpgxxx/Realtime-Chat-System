@@ -4,6 +4,22 @@
 
 ---
 
+## 🎯 Test Types Overview
+
+### 🤖 **Automated Tests** (For CI/CD & Quick Validation)
+
+- Chạy tự động, không cần interaction
+- Reproducible, consistent results
+- Used for regression testing
+
+### 🎬 **Manual Demos** (For Thesis Presentation)
+
+- Real packet capture từ browser
+- Interactive demonstration
+- Professional presentation quality
+
+---
+
 ## 🚀 Quick Start (VM-Only Workflow)
 
 ### Step 1: SSH vào VM1
@@ -30,32 +46,34 @@ source tests/.env
 
 **Setup script sẽ tự động:**
 
-- ✅ Detect VM1 public IP từ GCP metadata
-- ✅ Detect VM1 internal IP
-- ✅ Detect VM2 internal IP từ docker-compose.yml
-- ✅ Extract HMAC_SECRET_KEY từ backend container
+- ✅ Detect VM1 public IP from apps/.env or manual input
+- ✅ Detect VM1 internal IP using hostname
+- ✅ Detect VM2 internal IP from docker-compose.yml
+- ✅ Extract HMAC_SECRET_KEY from backend container
 - ✅ Generate tests/.env file
 
-### Step 3: Chạy Tests
-
-**Option A: Chạy tất cả kịch bản**
+### Step 3A: Chạy Automated Tests (Quick)
 
 ```bash
-cd /home/mitsne/realtime-chat
+# Run all automated tests
 ./tests/run-all-scenarios.sh
+
+# Or individual tests
+./tests/scenario1-network-isolation.sh
+./tests/scenario2-httponly-cookie.sh
+cd tests && node replay-attack-demo.js
 ```
 
-**Option B: Chạy từng kịch bản**
+### Step 3B: Chạy Manual Demos (For Thesis)
 
 ```bash
-# Scenario 1: Network Isolation
-./tests/scenario1-network-isolation.sh
+# Real packet capture & replay
+sudo ./tests/real-capture-demo.sh
 
-# Scenario 2: HttpOnly Cookie
-./tests/scenario2-httponly-cookie.sh
+# Message tampering attacks
+./tests/tamper-attack-demo.sh
 
-# Scenario 3: Replay Attack
-cd tests && node replay-attack-demo.js
+# Follow interactive prompts
 ```
 
 ---
