@@ -25,7 +25,7 @@ export async function POST(request) {
         const backendUrl = process.env.BE_URL;
         const targetUrl = `${backendUrl}/api/v1/messages/send`;
 
-        console.log('🔍 Message Send Proxy:', {
+        console.log('[MESSAGE-PROXY] Message Send Proxy:', {
             BE_URL: backendUrl,
             targetUrl: targetUrl,
             body: body

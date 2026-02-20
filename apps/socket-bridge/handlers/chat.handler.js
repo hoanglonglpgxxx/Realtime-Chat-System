@@ -60,7 +60,7 @@ function handleNewMessage(io, data) {
         timestamp: Date.now(),
     });
 
-    debugLog('CHAT', `📨 Broadcasted message to ${roomName}`);
+    debugLog('CHAT', `Broadcasted message to ${roomName}`);
 }
 
 /**
@@ -81,7 +81,7 @@ function handleMessageRead(io, data) {
         timestamp: Date.now(),
     });
 
-    debugLog('CHAT', `✓ Message ${messageId} read by ${userId}`);
+    debugLog('CHAT', `Message ${messageId} read by ${userId}`);
 }
 
 /**

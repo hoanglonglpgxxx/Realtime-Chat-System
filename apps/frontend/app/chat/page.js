@@ -15,10 +15,12 @@ export default function ChatPage() {
     const [inputText, setInputText] = useState("");
     const [loading, setLoading] = useState(false);
     const [socketConnected, setSocketConnected] = useState(false);
+    const [typingUsers, setTypingUsers] = useState(new Set());
 
     const messagesEndRef = useRef(null);
     const socketService = useRef(null);
     const selectedRoomRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
 
     // Update ref when selectedRoom changes
     useEffect(() => {
@@ -39,6 +41,10 @@ export default function ChatPage() {
         connectSocket();
 
         return () => {
+            // Cleanup on unmount
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
             if (socketService.current) {
                 socketService.current.disconnect();
             }
@@ -54,19 +60,19 @@ export default function ChatPage() {
 
         // Listen for socket events
         socketService.current.socket.on('connect', () => {
-            console.log('✅ Socket connected');
+            console.log('[SOCKET] Socket connected');
             setSocketConnected(true);
         });
 
         socketService.current.socket.on('disconnect', () => {
-            console.log('❌ Socket disconnected');
+            console.log('[SOCKET] Socket disconnected');
             setSocketConnected(false);
         });
 
         // Listen for new messages
         socketService.current.onNewMessage((data) => {
-            console.log('\n📨 [FRONTEND] New message event received!');
-            console.log('📦 [FRONTEND] Data:', data);
+            console.log('\n[FRONTEND] New message event received!');
+            console.log('[FRONTEND] Data:', data);
             if (data.message) {
                 // Handle both populated room (object) and room ID (string)
                 const messageRoomId = typeof data.message.room === 'object'
@@ -75,25 +81,43 @@ export default function ChatPage() {
 
                 // Use ref to get latest selectedRoom value
                 const currentRoom = selectedRoomRef.current;
-                console.log('🔍 [FRONTEND] Current room:', currentRoom?._id);
-                console.log('🔍 [FRONTEND] Message room:', messageRoomId);
-                console.log('🔍 [FRONTEND] Match:', currentRoom && messageRoomId === currentRoom._id);
+                console.log('[FRONTEND] Current room:', currentRoom?._id);
+                console.log('[FRONTEND] Message room:', messageRoomId);
+                console.log('[FRONTEND] Match:', currentRoom && messageRoomId === currentRoom._id);
 
                 if (currentRoom && messageRoomId === currentRoom._id) {
-                    console.log('✅ [FRONTEND] Room matched! Adding message to UI');
+                    console.log('[FRONTEND] Room matched! Adding message to UI');
                     setMessages(prev => {
                         // Avoid duplicates
                         if (prev.some(m => m._id === data.message._id)) {
-                            console.log('⚠️ [FRONTEND] Duplicate message, skipping');
+                            console.log('[FRONTEND] Duplicate message, skipping');
                             return prev;
                         }
-                        console.log('💬 [FRONTEND] Message appended to state');
+                        console.log('[FRONTEND] Message appended to state');
                         return [...prev, data.message];
                     });
                 } else {
-                    console.log('❌ [FRONTEND] Room not matched or no current room');
+                    console.log('[FRONTEND] Room not matched or no current room');
                 }
             }
+        });
+
+        // Listen for typing events
+        socketService.current.onTyping((data) => {
+            console.log('[FRONTEND] User typing:', data);
+            const currentRoom = selectedRoomRef.current;
+            if (currentRoom && data.roomId === currentRoom._id && data.userId !== user.id) {
+                setTypingUsers(prev => new Set(prev).add(data.userId));
+            }
+        });
+
+        socketService.current.onStopTyping((data) => {
+            console.log('[FRONTEND] User stop typing:', data);
+            setTypingUsers(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(data.userId);
+                return newSet;
+            });
         });
     };
 
@@ -127,6 +151,17 @@ export default function ChatPage() {
     const handleUserClick = async (selectedUser) => {
         try {
             setLoading(true);
+
+            // Clear typing indicator when switching rooms
+            setTypingUsers(new Set());
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+
+            // Leave previous room
+            if (selectedRoom && socketService.current) {
+                socketService.current.leaveRoom(selectedRoom._id);
+            }
 
             // Find or create room
             const response = await fetch('/api/proxy/rooms/find-or-create', {
@@ -172,10 +207,47 @@ export default function ChatPage() {
         }
     };
 
+    // Handle input change with typing indicator
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setInputText(value);
+
+        if (!selectedRoom || !socketService.current) return;
+
+        // Send typing event
+        if (value.trim()) {
+            socketService.current.sendTyping(selectedRoom._id);
+
+            // Clear previous timeout
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+
+            // Stop typing after 3 seconds of inactivity
+            typingTimeoutRef.current = setTimeout(() => {
+                socketService.current.sendStopTyping(selectedRoom._id);
+            }, 3000);
+        } else {
+            // If input is empty, stop typing immediately
+            socketService.current.sendStopTyping(selectedRoom._id);
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        }
+    };
+
     // Send message
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!inputText.trim() || !selectedRoom) return;
+
+        // Stop typing when sending message
+        if (socketService.current) {
+            socketService.current.sendStopTyping(selectedRoom._id);
+        }
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
 
         try {
             const response = await fetch('/api/proxy/message/send', {
@@ -325,7 +397,7 @@ export default function ChatPage() {
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-[#0F0F0F] to-[#121212]">
                             {messages.length === 0 ? (
                                 <div className="flex items-center justify-center h-full text-gray-500 text-sm">
-                                    Chưa có tin nhắn. Hãy gửi tin nhắn đầu tiên! 👋
+                                    Chưa có tin nhắn. Hãy gửi tin nhắn đầu tiên!
                                 </div>
                             ) : (
                                 messages.map((msg) => {
@@ -376,13 +448,27 @@ export default function ChatPage() {
                             <div ref={messagesEndRef} />
                         </div>
 
+                        {/* Typing Indicator */}
+                        {typingUsers.size > 0 && (
+                            <div className="px-6 py-2 text-sm text-gray-400 italic bg-[#0F0F0F]">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex gap-1">
+                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                    </div>
+                                    <span>{getOtherUser(selectedRoom)?.username || 'User'} đang gõ...</span>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Input Area */}
                         <div className="p-4 bg-[#1A1A1A] border-t border-[#2A2A2A]">
                             <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
                                 <input
                                     type="text"
                                     value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
+                                    onChange={handleInputChange}
                                     placeholder="Nhập tin nhắn..."
                                     className="flex-1 bg-[#0F0F0F] text-white px-4 py-3 rounded-xl border border-[#2A2A2A] focus:outline-none focus:border-[#D4AF37] transition-colors placeholder-gray-500"
                                 />

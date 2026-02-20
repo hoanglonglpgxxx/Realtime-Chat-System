@@ -7,7 +7,7 @@ const redisPassword = process.env.REDIS_PASS || '';
 
 const redisUrl = `redis://${redisPassword ? ':' + redisPassword + '@' : ''}${redisHost}:${redisPort}`;
 
-console.log(`🔗 Connecting to Redis: ${redisHost}:${redisPort}`);
+console.log(`[REDIS-CONFIG] Connecting to Redis: ${redisHost}:${redisPort}`);
 
 // Tạo Redis client cho pub/sub
 const redisClient = createClient({
@@ -15,7 +15,7 @@ const redisClient = createClient({
     socket: {
         reconnectStrategy: (retries) => {
             if (retries > 10) {
-                console.error('❌ Redis connection failed after 10 retries');
+                console.error('[REDIS-CONFIG] Redis connection failed after 10 retries');
                 return new Error('Redis connection failed');
             }
             return retries * 500; // Exponential backoff
@@ -24,15 +24,15 @@ const redisClient = createClient({
 });
 
 redisClient.on('error', (err) => {
-    console.error('❌ Redis Client Error:', err);
+    console.error('[REDIS-CONFIG] Redis Client Error:', err);
 });
 
 redisClient.on('connect', () => {
-    console.log('✅ Redis Client Connected');
+    console.log('[REDIS-CONFIG] Redis Client Connected');
 });
 
 redisClient.on('ready', () => {
-    console.log('✅ Redis Client Ready');
+    console.log('[REDIS-CONFIG] Redis Client Ready');
 });
 
 // Connect

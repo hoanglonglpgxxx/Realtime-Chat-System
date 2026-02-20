@@ -19,7 +19,7 @@ class SocketService {
         // Use relative path to go through Nginx proxy
         const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
 
-        console.log('🔌 Connecting to Socket.IO:', SOCKET_URL);
+        console.log('[SOCKET-SERVICE] Connecting to Socket.IO:', SOCKET_URL);
 
         this.socket = io(SOCKET_URL, {
             path: '/socket.io',
@@ -35,12 +35,12 @@ class SocketService {
         });
 
         this.socket.on('connect', () => {
-            console.log('✅ Socket connected:', this.socket.id);
+            console.log('Socket connected:', this.socket.id);
             this.connected = true;
         });
 
         this.socket.on('disconnect', (reason) => {
-            console.log('❌ Socket disconnected:', reason);
+            console.log('Socket disconnected:', reason);
             this.connected = false;
         });
 
@@ -72,7 +72,7 @@ class SocketService {
             return;
         }
 
-        console.log(`\n🔗 [SOCKET-SERVICE] Emitting joinRoom event for: ${roomId}`);
+        console.log(`[SOCKET-SERVICE] Emitting joinRoom event for: ${roomId}`);
         this.socket.emit('joinRoom', { roomId });
     }
 
@@ -84,7 +84,7 @@ class SocketService {
         if (!this.socket) return;
 
         this.socket.emit('leaveRoom', { roomId });
-        console.log(`👋 Leaving room: ${roomId}`);
+        console.log(`Leaving room: ${roomId}`);
     }
 
     /**
@@ -94,11 +94,10 @@ class SocketService {
     onNewMessage(callback) {
         if (!this.socket) return;
 
-        console.log('🎧 [SOCKET-SERVICE] Registering listener for: new_message');
+        console.log('[SOCKET-SERVICE] Registering listener for: new_message');
 
         this.socket.on('new_message', (data) => {
-            console.log('🔔 [SOCKET-SERVICE] Raw event received: new_message');
-            console.log('📦 [SOCKET-SERVICE] Raw data:', data);
+            console.log('[SOCKET-SERVICE] Raw data:', data);
             callback(data);
         });
     }
@@ -171,5 +170,4 @@ class SocketService {
     }
 }
 
-// Export class (not singleton) to allow multiple instances if needed
 export default SocketService;

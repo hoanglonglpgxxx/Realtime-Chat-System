@@ -39,7 +39,7 @@ export async function POST(request) {
             path: '/', // Có hiệu lực cho toàn bộ website
         });
 
-        console.log('✅ Cookie set:', { name: 'token', hasValue: !!data.accessToken });
+        console.log('[LOGIN-PROXY] Cookie set:', { name: 'token', hasValue: !!data.accessToken });
 
         return response;
     } catch (error) {

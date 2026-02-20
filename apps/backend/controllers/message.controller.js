@@ -64,13 +64,13 @@ exports.sendMessage = async (req, res) => {
         // Add sender info AFTER signing (not part of HMAC)
         redisPayload.senderInfo = populatedMessage.sender;
 
-        console.log('\n📤 [BACKEND] Publishing to Redis channel: mits_chat_event');
-        console.log('🎯 [BACKEND] Event type:', redisPayload.eventType);
-        console.log('🏠 [BACKEND] Room ID:', roomId);
-        console.log('🔐 [BACKEND] HMAC signature:', redisPayload.signature.substring(0, 20) + '...');
+        console.log('\n[BACKEND] Publishing to Redis channel: mits_chat_event');
+        console.log('[BACKEND] Event type:', redisPayload.eventType);
+        console.log('[BACKEND] Room ID:', roomId);
+        console.log('[BACKEND] HMAC signature:', redisPayload.signature.substring(0, 20) + '...');
 
         await redis.publish('mits_chat_event', JSON.stringify(redisPayload));
-        console.log('✅ [BACKEND] Published to Redis successfully');
+        console.log('[BACKEND] Published to Redis successfully');
 
         res.status(201).send({
             message: populatedMessage,
