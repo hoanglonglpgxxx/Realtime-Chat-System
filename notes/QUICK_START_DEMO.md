@@ -35,70 +35,53 @@ Internet → VM1 (Public) → VM2 (Private)
 
 ## 🚀 Cách Sử Dụng Nhanh
 
-**⚠️ QUAN TRỌNG: Tests nên chạy từ LOCAL MACHINE (có gcloud CLI)**
+**✅ Chạy TẤT CẢ tests từ VM1 - KHÔNG cần local machine**
 
-### Option 1: Chạy Từ Local Machine (Recommended)
-
-```bash
-# Từ thư mục gốc project trên PC
-cd d:\Realtime-Chat-System
-
-# Windows: Dùng Git Bash hoặc WSL
-bash tests/run-all-scenarios.sh
-
-# Hoặc chạy từng kịch bản
-bash tests/scenario1-network-isolation.sh
-```
-
-### Option 2: Chạy Trên VM1 (Requires Manual Setup)
+### Bước 1: SSH vào VM1
 
 ```bash
-# SSH vào VM1
+# Từ local PC (chỉ để SSH)
 gcloud compute ssh chat-system-app --zone=us-central1-c
-
-# Setup environment variables
-export VM1_PUBLIC_IP=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
-export VM1_INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
-export VM2_INTERNAL_IP="10.128.0.X"  # TODO: Thay bằng IP thực của VM2
-
-# Run test
-cd /home/mitsne/realtime-chat
-./tests/scenario1-network-isolation.sh
 ```
 
-### Option 3: Chạy Tất Cả (Master Script)
+### Bước 2: Setup Test Environment (Chạy 1 lần duy nhất)
 
 ```bash
-# Từ thư mục gốc project
-cd d:\Realtime-Chat-System
-
-# Make scripts executable (nếu trên Linux/Mac)
+# Tự động detect tất cả IPs và HMAC key
+cd /home/mitsne/realtime-chat
 chmod +x tests/*.sh
+./tests/setup-vm-test-env.sh
 
-# Chạy tất cả 4 kịch bản
+# Load environment variables
+source /home/mitsne/realtime-chat/tests/.env
+```
+
+### Bước 3: Chạy Tests
+
+**Option A: Chạy TẤT CẢ kịch bản (Recommended)**
+
+```bash
+cd /home/mitsne/realtime-chat
 ./tests/run-all-scenarios.sh
 ```
 
-### Option 2: Chạy Từng Kịch Bản (Local Machine)
+**Option B: Chạy TỪNG kịch bản**
 
 ```bash
-# Kịch bản 1: Network Isolation (Tự động)
-bash tests/scenario1-network-isolation.sh
+cd /home/mitsne/realtime-chat
 
-# Kịch bản 2: HttpOnly Cookie (Hướng dẫn manual)
-bash tests/scenario2-httponly-cookie.sh
+# Load env first
+source tests/.env
 
-# Kịch bản 3: HMAC + Replay Attack (Tự động)
-cd tests
-export VM1_URL="http://YOUR_VM1_IP:8029"
-export HMAC_SECRET_KEY="your-secret-key"
-node replay-attack-demo.js
+# Kịch bản 1: Network Isolation
+./tests/scenario1-network-isolation.sh
 
-# Kịch bản 4: SIEM Wazuh (Manual - theo hướng dẫn)
-# Xem DEFENSE_IN_DEPTH_DEMO.md
+# Kịch bản 2: HttpOnly Cookie
+./tests/scenario2-httponly-cookie.sh
+
+# Kịch bản 3: HMAC + Replay Attack
+cd tests && node replay-attack-demo.js
 ```
-
----
 
 ## ⭐ Kịch Bản 3 - REPLAY ATTACK (Core của Thesis)
 
@@ -135,13 +118,11 @@ node replay-attack-demo.js
 ### Chạy Demo:
 
 ```bash
-cd tests
+# Đảm bảo đã load env (từ Bước 2 ở trên)
+source /home/mitsne/realtime-chat/tests/.env
 
-# Setup environment
-export VM1_URL="http://34.71.XXX.XXX:8029"  # Your VM1 IP
-export HMAC_SECRET_KEY="your-secret-key"    # From VM1: docker exec backend_chat env | grep HMAC
-
-# Run
+# Chạy demo
+cd /home/mitsne/realtime-chat/tests
 node replay-attack-demo.js
 
 # Output mong đợi:
@@ -458,24 +439,31 @@ TTL chat:nonce:abc123...
 ## 🎯 Quick Commands
 
 ```bash
-# Quick test all (Linux/Mac)
+# === ONE-TIME SETUP (Trên VM1) ===
+gcloud compute ssh chat-system-app --zone=us-central1-c
+cd /home/mitsne/realtime-chat
+chmod +x tests/*.sh
+./tests/setup-vm-test-env.sh
+source tests/.env
+
+# === CHẠY TESTS ===
+
+# Quick test all
 ./tests/run-all-scenarios.sh
 
-# Quick test all (Windows PowerShell)
-bash tests/run-all-scenarios.sh
-
-# Just replay attack
+# Just replay attack demo
 cd tests && node replay-attack-demo.js
 
-# Check VM status
+# === MONITORING ===
+
+# Check VM status (từ local PC - chỉ 1 command duy nhất)
 gcloud compute instances list
 
-# Check containers on VM1
-gcloud compute ssh chat-system-app --zone=us-central1-c --command="docker ps"
+# Check containers on VM1 (sau khi đã SSH)
+docker ps
 
-# Check Redis nonces on VM2
-gcloud compute ssh tracker-n-chat-infrastructure --zone=us-central1-c \
-  --command="docker exec -it redis redis-cli -a PASSWORD KEYS 'chat:nonce:*'"
+# Check Redis nonces on VM2 (từ VM1)
+ssh mitsne@$VM2_INTERNAL_IP "docker exec -it redis redis-cli -a \$REDIS_PASS KEYS 'chat:nonce:*'"
 ```
 
 ---

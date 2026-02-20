@@ -1,37 +1,80 @@
-# Replay Attack Defense - Testing Suite
+# Defense-in-Depth Security Testing Suite
 
-## Quick Start
+**Chạy tất cả tests từ VM1 - Không cần local machine**
 
-### 1. Install Dependencies
+---
 
-```bash
-npm install axios
-```
+## 🚀 Quick Start (VM-Only Workflow)
 
-### 2. Configure Environment
+### Step 1: SSH vào VM1
 
 ```bash
-# Set your VM1 URL and HMAC secret
-export VM1_URL="http://YOUR_VM1_IP:8029"
-export HMAC_SECRET_KEY="your-secret-key-here"
+# Từ local PC (chỉ để SSH, không chạy tests)
+gcloud compute ssh chat-system-app --zone=us-central1-c
 ```
 
-To find your HMAC secret:
+### Step 2: One-Time Setup (Chạy 1 lần duy nhất)
 
 ```bash
-# On VM1
-ssh chat-system-app
-docker exec backend_chat env | grep HMAC_SECRET_KEY
+cd /home/mitsne/realtime-chat
 
-# Or check .env file
-cat /home/mitsne/realtime-chat/apps/.env | grep HMAC_SECRET_KEY
+# Make scripts executable
+chmod +x tests/*.sh
+
+# Auto-detect IPs and HMAC key
+./tests/setup-vm-test-env.sh
+
+# Load environment
+source tests/.env
 ```
 
-### 3. Run Demo
+**Setup script sẽ tự động:**
+
+- ✅ Detect VM1 public IP từ GCP metadata
+- ✅ Detect VM1 internal IP
+- ✅ Detect VM2 internal IP từ docker-compose.yml
+- ✅ Extract HMAC_SECRET_KEY từ backend container
+- ✅ Generate tests/.env file
+
+### Step 3: Chạy Tests
+
+**Option A: Chạy tất cả kịch bản**
 
 ```bash
-node tests/replay-attack-demo.js
+cd /home/mitsne/realtime-chat
+./tests/run-all-scenarios.sh
 ```
+
+**Option B: Chạy từng kịch bản**
+
+```bash
+# Scenario 1: Network Isolation
+./tests/scenario1-network-isolation.sh
+
+# Scenario 2: HttpOnly Cookie
+./tests/scenario2-httponly-cookie.sh
+
+# Scenario 3: Replay Attack
+cd tests && node replay-attack-demo.js
+```
+
+---
+
+## 📦 What's Included
+
+### Test Scripts
+
+1. **setup-vm-test-env.sh** ⭐ Setup tự động (chạy đầu tiên)
+2. **scenario1-network-isolation.sh** - Test firewall & private subnet
+3. **scenario2-httponly-cookie.sh** - Test session cookie protection
+4. **replay-attack-demo.js** - Test HMAC + nonce tracking
+5. **run-all-scenarios.sh** - Master script chạy tất cả
+
+### Dependencies
+
+Node.js packages (đã có sẵn trên VM1):
+
+- `axios` - HTTP client for API testing
 
 ---
 
