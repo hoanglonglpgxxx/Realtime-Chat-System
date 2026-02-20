@@ -33,20 +33,22 @@ echo -e "${YELLOW}[2/4] Detecting VM1 public IP...${NC}"
 # Try to get from apps/.env (CI/CD generated)
 if [ -f "/home/mitsne/realtime-chat/apps/.env" ]; then
     echo -e "${BLUE}   Checking apps/.env...${NC}"
-    VM1_PUBLIC=$(grep "^BE_URL=" /home/mitsne/realtime-chat/apps/.env 2>/dev/null | sed -E 's|BE_URL=http://([0-9.]+):.*|\1|')
+    # Extract IP from BE_URL=http://IP:PORT format
+    VM1_PUBLIC=$(grep "^BE_URL=" /home/mitsne/realtime-chat/apps/.env 2>/dev/null | grep -oP '(?<=http://)\d+\.\d+\.\d+\.\d+' | head -1)
 fi
 
-# Fallback: Try to extract from docker ps output
-if [ -z "$VM1_PUBLIC" ]; then
-    echo -e "${BLUE}   Trying to detect from running containers...${NC}"
-    VM1_PUBLIC=$(docker inspect backend_chat 2>/dev/null | grep -oP '"BE_URL":"http://\K[0-9.]+' | head -1 || echo "")
+# Fallback: Check for VM1_PUBLIC_IP variable directly
+if [ -z "$VM1_PUBLIC" ] && [ -f "/home/mitsne/realtime-chat/apps/.env" ]; then
+    VM1_PUBLIC=$(grep "^VM1_PUBLIC_IP=" /home/mitsne/realtime-chat/apps/.env 2>/dev/null | cut -d'=' -f2 | tr -d '"' | tr -d "'")
 fi
 
-# Last resort: Manual input
+# Last resort: Manual input (CHẮC CHẮN CẦN vì .env không lưu public IP)
 if [ -z "$VM1_PUBLIC" ]; then
-    echo -e "${YELLOW}   Could not auto-detect VM1 public IP.${NC}"
-    echo -e "${YELLOW}   Check GCP Console for External IP or enter manually:${NC}"
-    read -p "   VM1 Public IP: " VM1_PUBLIC
+    echo -e "${YELLOW}   Public IP không có trong .env file${NC}"
+    echo -e "${YELLOW}   Từ GCP Console, VM1 External IP là:${NC}"
+    echo -e "${BLUE}   → 35.193.42.199${NC}"
+    read -p "   Nhập VM1 Public IP (hoặc Enter dùng 35.193.42.199): " VM1_PUBLIC_INPUT
+    VM1_PUBLIC="${VM1_PUBLIC_INPUT:-35.193.42.199}"
 fi
 
 if [ -z "$VM1_PUBLIC" ]; then
@@ -60,25 +62,33 @@ echo ""
 # [3] Auto-detect VM2 internal IP
 echo -e "${YELLOW}[3/4] Auto-detecting VM2 internal IP...${NC}"
 
-# Method 1: From docker-compose if on VM1
-if [ -f "/home/mitsne/realtime-chat/apps/docker-compose.yml" ]; then
-    echo -e "${BLUE}   Checking docker-compose.yml...${NC}"
-    # Extract REDIS_HOST value
-    VM2_INTERNAL=$(grep -E "REDIS_HOST|MONGO_HOST" /home/mitsne/realtime-chat/apps/docker-compose.yml 2>/dev/null | head -1 | sed -E 's/.*REDIS_HOST=([0-9.]+).*/\1/')
+# Method 1: From apps/.env (CI/CD generated)
+if [ -f "/home/mitsne/realtime-chat/apps/.env" ]; then
+    echo -e "${BLUE}   Checking apps/.env...${NC}"
+    # Extract from VM2_INTERNAL_IP=10.128.0.2 format
+    VM2_INTERNAL=$(grep "^VM2_INTERNAL_IP=" /home/mitsne/realtime-chat/apps/.env 2>/dev/null | cut -d'=' -f2 | tr -d '"' | tr -d "'")
 fi
 
-# Method 2: From .env file
-if [ -z "$VM2_INTERNAL" ] && [ -f "/home/mitsne/realtime-chat/apps/.env" ]; then
-    echo -e "${BLUE}   Checking .env file...${NC}"
-    source /home/mitsne/realtime-chat/apps/.env 2>/dev/null
-    VM2_INTERNAL="${VM2_INTERNAL_IP:-}"
+# Method 2: From docker-compose environment variables
+if [ -z "$VM2_INTERNAL" ] && [ -f "/home/mitsne/realtime-chat/apps/docker-compose.yml" ]; then
+    echo -e "${BLUE}   Checking docker-compose.yml for REDIS_HOST...${NC}"
+    # Extract IP from REDIS_HOST=10.128.0.2 or similar
+    VM2_INTERNAL=$(grep "REDIS_HOST=" /home/mitsne/realtime-chat/apps/docker-compose.yml 2>/dev/null | grep -oP '\d+\.\d+\.\d+\.\d+' | head -1)
 fi
 
-# Method 3: Manual input
+# Method 3: From running backend container
+if [ -z "$VM2_INTERNAL" ]; then
+    echo -e "${BLUE}   Checking backend container env...${NC}"
+    VM2_INTERNAL=$(docker exec backend_chat env 2>/dev/null | grep "REDIS_HOST=" | grep -oP '\d+\.\d+\.\d+\.\d+' | head -1 || echo "")
+fi
+
+# Method 4: Manual input với default suggestion
 if [ -z "$VM2_INTERNAL" ]; then
     echo -e "${YELLOW}   Could not auto-detect VM2 IP.${NC}"
-    echo -e "${YELLOW}   Please enter VM2 internal IP manually:${NC}"
-    read -p "   VM2 Internal IP: " VM2_INTERNAL
+    echo -e "${YELLOW}   Từ GCP Console, VM2 Internal IP là:${NC}"
+    echo -e "${BLUE}   → 10.128.0.2${NC}"
+    read -p "   Nhập VM2 Internal IP (hoặc Enter dùng 10.128.0.2): " VM2_INTERNAL_INPUT
+    VM2_INTERNAL="${VM2_INTERNAL_INPUT:-10.128.0.2}"
 fi
 
 echo -e "${GREEN}✓${NC} VM2 Internal: ${VM2_INTERNAL}"
