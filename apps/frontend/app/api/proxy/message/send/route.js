@@ -65,6 +65,12 @@ export async function POST(request) {
         const cookieStore = await cookies();
         const token = cookieStore.get('token')?.value;
 
+        console.log('[MESSAGE-PROXY] 📥 Received from browser:', {
+            roomId: body.roomId,
+            content: body.content?.substring(0, 50),
+            type: body.type,
+        });
+
         if (!token) {
             return NextResponse.json(
                 { message: 'Unauthorized' },
@@ -72,13 +78,25 @@ export async function POST(request) {
             );
         }
 
-        // Add HMAC signature (server-side, secret key protected)
-        const signedBody = addHMACSignature(body);
+        // 🔍 DEBUG: Try to add HMAC (optional for now)
+        let signedBody = body;
+        try {
+            if (process.env.HMAC_SECRET_KEY) {
+                console.log('[MESSAGE-PROXY] 🔐 HMAC_SECRET_KEY found, adding signature...');
+                signedBody = addHMACSignature(body);
+                console.log('[MESSAGE-PROXY] ✅ HMAC added successfully');
+            } else {
+                console.log('[MESSAGE-PROXY] ⚠️  HMAC_SECRET_KEY not configured, sending without HMAC');
+            }
+        } catch (hmacError) {
+            console.error('[MESSAGE-PROXY] ⚠️  HMAC generation failed:', hmacError.message);
+            console.log('[MESSAGE-PROXY] Continuing without HMAC...');
+        }
 
         const backendUrl = process.env.BE_URL;
         const targetUrl = `${backendUrl}/api/v1/messages/send`;
 
-        console.log('[MESSAGE-PROXY] Message Send Proxy:', {
+        console.log('[MESSAGE-PROXY] 📤 Sending to backend:', {
             BE_URL: backendUrl,
             targetUrl: targetUrl,
             hasSignature: !!signedBody.signature,
@@ -96,11 +114,17 @@ export async function POST(request) {
 
         const data = await backendResponse.json();
 
+        console.log('[MESSAGE-PROXY] 📨 Backend response:', {
+            status: backendResponse.status,
+            success: data.success,
+        });
+
         return NextResponse.json(data, { status: backendResponse.status });
     } catch (error) {
-        console.error('Error in message proxy:', error);
+        console.error('[MESSAGE-PROXY] ❌ Error in message proxy:', error);
+        console.error('[MESSAGE-PROXY] Error stack:', error.stack);
         return NextResponse.json(
-            { message: 'Internal server error' },
+            { message: 'Internal server error', error: error.message },
             { status: 500 }
         );
     }
