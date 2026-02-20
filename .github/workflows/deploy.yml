@@ -58,7 +58,7 @@ jobs:
           host: ${{ secrets.VM1_PUBLIC_IP }}
           username: mitsne
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "infrastructure,apps/docker-compose.yml,apps/nginx"
+          source: "infrastructure,apps/docker-compose.yml,apps/nginx,tests"
           target: "/home/mitsne/realtime-chat/sync_tmp"
 
       # --- 3. DEPLOY VM 1 (Web Server, Backend, Frontend) ---
@@ -72,8 +72,13 @@ jobs:
             mkdir -p /home/mitsne/realtime-chat/apps
             cd /home/mitsne/realtime-chat/apps
 
-            # Cập nhật file config và nginx
+            # Cập nhật file config, nginx, và tests
             cp /home/mitsne/realtime-chat/sync_tmp/apps/docker-compose.yml .
+
+            # Copy tests folder to VM1
+            mkdir -p /home/mitsne/realtime-chat/tests
+            cp -r /home/mitsne/realtime-chat/sync_tmp/tests/* /home/mitsne/realtime-chat/tests/ 2>/dev/null || echo "No tests to sync"
+            chmod +x /home/mitsne/realtime-chat/tests/*.sh 2>/dev/null || true
 
             # Debug: Check source files
             echo "=== Files in sync_tmp/apps/nginx/conf.d/ ==="
@@ -144,8 +149,9 @@ jobs:
             docker save -o socket_bridge.tar ${{ secrets.DOCKERHUB_USERNAME }}/chat-socket-bridge:latest
 
             # B. Chuyển sang VM 2
-            ssh -i id_rsa_temp -o StrictHostKeyChecking=no mitsne@${{ secrets.VM2_INTERNAL_IP }} "mkdir -p /home/mitsne/realtime-chat/infrastructure"
+            ssh -i id_rsa_temp -o StrictHostKeyChecking=no mitsne@${{ secrets.VM2_INTERNAL_IP }} "mkdir -p /home/mitsne/realtime-chat/infrastructure /home/mitsne/realtime-chat/tests"
             scp -i id_rsa_temp -o StrictHostKeyChecking=no -r /home/mitsne/realtime-chat/sync_tmp/infrastructure/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
+            scp -i id_rsa_temp -o StrictHostKeyChecking=no -r /home/mitsne/realtime-chat/sync_tmp/tests/* mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/tests/ || echo "No tests folder to sync"
             scp -i id_rsa_temp -o StrictHostKeyChecking=no socket_bridge.tar mitsne@${{ secrets.VM2_INTERNAL_IP }}:/home/mitsne/realtime-chat/infrastructure/
 
             # C. Thực thi tại VM 2
