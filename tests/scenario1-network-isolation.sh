@@ -17,38 +17,23 @@ echo -e "${BLUE}  KỊCH BẢN 1: NETWORK ISOLATION${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
-# Get VM IPs
-echo -e "${YELLOW}[1/5] Đang lấy thông tin VMs...${NC}"
+# Get VM IPs from environment variables
+echo -e "${YELLOW}[1/5] Đang lấy thông tin VMs từ environment...${NC}"
 
-VM1_NAME="chat-system-app"
-VM2_NAME="tracker-n-chat-infrastructure"
-ZONE="us-central1-c"
+# Load from environment variables (set by setup-vm-test-env.sh)
+VM1_PUBLIC="${VM1_PUBLIC_IP}"
+VM1_INTERNAL="${VM1_INTERNAL_IP}"
+VM2_INTERNAL="${VM2_INTERNAL_IP}"
+VM2_PUBLIC="${VM2_PUBLIC_IP}"
 
-# Try to get IPs from gcloud (if available), otherwise use environment variables
-if command -v gcloud &> /dev/null; then
-    echo -e "${BLUE}   Using gcloud CLI to query VM info...${NC}"
-    VM1_PUBLIC=$(gcloud compute instances describe $VM1_NAME \
-      --zone=$ZONE \
-      --format="get(networkInterfaces[0].accessConfigs[0].natIP)" 2>/dev/null || echo "")
-
-    VM1_INTERNAL=$(gcloud compute instances describe $VM1_NAME \
-      --zone=$ZONE \
-      --format="get(networkInterfaces[0].networkIP)" 2>/dev/null || echo "")
-
-    VM2_INTERNAL=$(gcloud compute instances describe $VM2_NAME \
-      --zone=$ZONE \
-      --format="get(networkInterfaces[0].networkIP)" 2>/dev/null || echo "")
-
-    VM2_PUBLIC=$(gcloud compute instances describe $VM2_NAME \
-      --zone=$ZONE \
-      --format="get(networkInterfaces[0].accessConfigs[0].natIP)" 2>/dev/null || echo "")
-else
-    echo -e "${YELLOW}   gcloud CLI not found. Using environment variables...${NC}"
-    echo -e "${YELLOW}   Set: VM1_PUBLIC_IP, VM1_INTERNAL_IP, VM2_INTERNAL_IP${NC}"
-    VM1_PUBLIC="${VM1_PUBLIC_IP:-}"
-    VM1_INTERNAL="${VM1_INTERNAL_IP:-}"
-    VM2_INTERNAL="${VM2_INTERNAL_IP:-}"
-    VM2_PUBLIC="${VM2_PUBLIC_IP:-}"
+# Check if env vars are set
+if [ -z "$VM1_PUBLIC" ] || [ -z "$VM2_INTERNAL" ]; then
+    echo -e "${RED}❌ Environment variables chưa được set!${NC}"
+    echo -e "${YELLOW}Chạy lệnh sau trước:${NC}"
+    echo -e "  ${BLUE}source /home/mitsne/realtime-chat/tests/.env${NC}"
+    echo -e "${YELLOW}Hoặc chạy setup:${NC}"
+    echo -e "  ${BLUE}./tests/setup-vm-test-env.sh${NC}"
+    exit 1
 fi
 
 echo -e "${GREEN}✓${NC} VM1 Public IP:  ${VM1_PUBLIC:-None}"

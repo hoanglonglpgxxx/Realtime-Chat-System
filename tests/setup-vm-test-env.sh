@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Setup script để chạy tests trực tiếp từ VM1
-# Script này TỰ ĐỘNG detect tất cả IPs cần thiết
+# Script này TỰ ĐỘNG detect IPs từ local commands - KHÔNG dùng GCP API
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,22 +14,42 @@ echo -e "${BLUE}  SETUP TEST ENVIRONMENT FOR VM${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
-# Detect current VM
-CURRENT_VM=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/name 2>/dev/null || echo "unknown")
-echo -e "${YELLOW}Current VM: ${CURRENT_VM}${NC}"
+# [1] Detect VM1 Internal IP from network interface
+echo -e "${YELLOW}[1/4] Detecting VM1 internal IP...${NC}"
+VM1_INTERNAL=$(hostname -I | awk '{print $1}' || echo "")
+
+if [ -z "$VM1_INTERNAL" ]; then
+    VM1_INTERNAL=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1' | head -1)
+fi
+
+echo -e "${GREEN}✓${NC} VM1 Internal IP: ${VM1_INTERNAL}"
 echo ""
 
-# Get current VM's IPs from metadata
-echo -e "${YELLOW}[1/3] Detecting current VM network info...${NC}"
-VM1_PUBLIC=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip 2>/dev/null || echo "")
-VM1_INTERNAL=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip 2>/dev/null || echo "")
+# [2] Get VM1 Public IP (manual input)
+echo -e "${YELLOW}[2/4] Setting VM1 public IP...${NC}"
+echo -e "${BLUE}   Nhập VM1 Public IP (hoặc Enter để dùng: 34.71.X.X):${NC}"
+read -p "   VM1 Public IP: " VM1_PUBLIC_INPUT
 
-echo -e "${GREEN}✓${NC} Public IP:  ${VM1_PUBLIC:-None}"
-echo -e "${GREEN}✓${NC} Internal IP: ${VM1_INTERNAL}"
+if [ -z "$VM1_PUBLIC_INPUT" ]; then
+    # Try to get from docker-compose or env
+    if [ -f "/home/mitsne/realtime-chat/apps/.env" ]; then
+        source /home/mitsne/realtime-chat/apps/.env 2>/dev/null
+        VM1_PUBLIC="${VM1_PUBLIC_IP:-}"
+    fi
+    
+    if [ -z "$VM1_PUBLIC" ]; then
+        echo -e "${RED}   Public IP chưa được set!${NC}"
+        read -p "   Nhập VM1 Public IP (bắt buộc): " VM1_PUBLIC
+    fi
+else
+    VM1_PUBLIC="$VM1_PUBLIC_INPUT"
+fi
+
+echo -e "${GREEN}✓${NC} VM1 Public IP: ${VM1_PUBLIC}"
 echo ""
 
-# Auto-detect VM2 internal IP by trying docker-compose.yml or env file
-echo -e "${YELLOW}[2/3] Auto-detecting VM2 internal IP...${NC}"
+# [3] Auto-detect VM2 internal IP
+echo -e "${YELLOW}[3/4] Auto-detecting VM2 internal IP...${NC}"
 
 # Method 1: From docker-compose if on VM1
 if [ -f "/home/mitsne/realtime-chat/apps/docker-compose.yml" ]; then
@@ -45,13 +65,7 @@ if [ -z "$VM2_INTERNAL" ] && [ -f "/home/mitsne/realtime-chat/apps/.env" ]; then
     VM2_INTERNAL="${VM2_INTERNAL_IP:-}"
 fi
 
-# Method 3: From infrastructure on VM2
-if [ -z "$VM2_INTERNAL" ] && [ "$CURRENT_VM" = "tracker-n-chat-infrastructure" ]; then
-    echo -e "${BLUE}   Running on VM2, using own IP...${NC}"
-    VM2_INTERNAL=$VM1_INTERNAL
-fi
-
-# Method 4: Manual input
+# Method 3: Manual input
 if [ -z "$VM2_INTERNAL" ]; then
     echo -e "${YELLOW}   Could not auto-detect VM2 IP.${NC}"
     echo -e "${YELLOW}   Please enter VM2 internal IP manually:${NC}"
@@ -61,8 +75,8 @@ fi
 echo -e "${GREEN}✓${NC} VM2 Internal: ${VM2_INTERNAL}"
 echo ""
 
-# Get HMAC_SECRET_KEY from backend container
-echo -e "${YELLOW}[3/3] Detecting HMAC_SECRET_KEY...${NC}"
+# [4] Get HMAC_SECRET_KEY from backend container
+echo -e "${YELLOW}[4/4] Detecting HMAC_SECRET_KEY...${NC}"
 HMAC_KEY=$(docker exec backend_chat env 2>/dev/null | grep HMAC_SECRET_KEY | cut -d'=' -f2 || echo "")
 
 if [ -z "$HMAC_KEY" ]; then
@@ -82,7 +96,7 @@ echo -e "${YELLOW}Creating .env file...${NC}"
 cat > $TEST_DIR/.env << EOF
 # VM Test Environment
 # Auto-generated: $(date)
-# Generated on: $CURRENT_VM
+# Setup from VM via SSH (no GCP API calls)
 
 # VM1 (chat-system-app)
 export VM1_PUBLIC_IP=$VM1_PUBLIC
