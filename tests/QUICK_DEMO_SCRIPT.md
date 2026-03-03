@@ -92,7 +92,7 @@ docker logs backend_chat --tail 30
 
 ### **Step 3: Tạo curl command**
 
-Paste vào terminal SSH VM1:
+**QUAN TRỌNG:** Gửi qua frontend proxy với nonce/signature đã dùng:
 
 ```bash
 curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
@@ -103,10 +103,16 @@ curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
     "content": "Demo replay attack",
     "type": "text",
     "nonce": "a7f3e9c1b2d4f5e6c8a9b0d1e2f34567",
-    "eventTime": 1772518757724,
-    "signature": "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c..."
+    "eventTime": 1772518757,
+    "signature": "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e7"
   }'
 ```
+
+**Lưu ý:**
+
+- Copy **CHÍNH XÁC** nonce, eventTime, signature từ request đầu tiên
+- eventTime phải là **Unix timestamp (seconds)**, không có milliseconds
+- Frontend proxy sẽ forward request as-is (không generate HMAC mới)
 
 ### **Kết quả mong đợi:**
 
@@ -124,7 +130,19 @@ curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
 - Request đầu tiên → Backend lưu `nonce` vào Redis (TTL 60s)
 - Request thứ 2 (replay) → Backend check nonce đã tồn tại → **Chặn!**
 
-### **Step 3.5: Check Backend Logs - Replay Detected**
+### **Step 3.5: Check Frontend Logs - Forwarding Replay**
+
+```bash
+docker logs frontend_chat --tail 15
+
+# Sẽ thấy:
+# ⚠️  [FRONTEND] Request already has HMAC fields - FORWARDING AS-IS
+#    This might be a replay attack attempt!
+#    Nonce (existing): a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
+#    Signature (existing): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
+```
+
+### **Step 3.6: Check Backend Logs - Replay Detected**
 
 ```bash
 docker logs backend_chat --tail 20
@@ -133,6 +151,8 @@ docker logs backend_chat --tail 20
 # [MESSAGE-SEND] 🔐 HMAC fields present, verifying...
 # [HMAC-VERIFY] Received signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
 # [HMAC-VERIFY] Nonce (full): a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
+# [VERIFY] Step 3: Checking nonce uniqueness in Redis...
+# [VERIFY] ❌ Nonce already exists in Redis (Replay Attack!)
 # [MESSAGE-SEND] ❌ HMAC verification failed: Nonce already used (replay attack detected)
 ```
 
@@ -339,6 +359,39 @@ cat backend_hmac.log | grep -A10 "HMAC-VERIFY"
 ---
 
 ## �🚨 Troubleshooting
+
+### **Nếu DEMO 2 trả về "Invalid HMAC signature" thay vì "Nonce already used":**
+
+**Nguyên nhân:** Frontend proxy đang generate HMAC mới thay vì forward request as-is
+
+**Triệu chứng:**
+
+- Backend logs cho thấy nonce KHÁC với nonce bạn gửi trong curl
+- Frontend logs hiển thị "GENERATING HMAC SIGNATURE"
+
+**Fix:**
+
+```bash
+# 1. Check frontend logs khi replay
+docker logs frontend_chat --tail 20
+
+# PHẢI thấy:
+# ⚠️  [FRONTEND] Request already has HMAC fields - FORWARDING AS-IS
+
+# KHÔNG được thấy (nếu thấy = bug):
+# 🔐 [FRONTEND] GENERATING HMAC SIGNATURE
+
+# 2. Nếu vẫn generate mới, check code frontend proxy:
+# File: apps/frontend/app/api/proxy/message/send/route.js
+# Phải có logic:
+#   if (body.signature && body.nonce && body.eventTime) {
+#       signedBody = body; // Forward as-is
+#   } else {
+#       signedBody = addHMACSignature(body); // Add new HMAC
+#   }
+```
+
+---
 
 ### **Nếu DEMO 2 KHÔNG bị chặn (200 OK instead of 401):**
 

@@ -92,10 +92,19 @@ export async function POST(request) {
             );
         }
 
-        // 🔍 DEBUG: Try to add HMAC (optional for now)
+        // 🔍 Add HMAC if not already present (for browser requests)
         let signedBody = body;
         try {
-            if (process.env.HMAC_SECRET_KEY) {
+            // Check if request already has HMAC fields (e.g., from curl replay attack)
+            if (body.signature && body.nonce && body.eventTime) {
+                console.log('\n⚠️  [FRONTEND] Request already has HMAC fields - FORWARDING AS-IS');
+                console.log('   This might be a replay attack attempt!');
+                console.log('   Nonce (existing):', body.nonce);
+                console.log('   Signature (existing):', body.signature);
+                console.log('   EventTime (existing):', body.eventTime);
+                signedBody = body; // Forward as-is, let backend verify
+            } else if (process.env.HMAC_SECRET_KEY) {
+                // Normal browser request - add HMAC
                 signedBody = addHMACSignature(body);
             } else {
                 console.log('\n⚠️  [FRONTEND] HMAC_SECRET_KEY not configured');
