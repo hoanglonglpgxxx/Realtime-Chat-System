@@ -4,39 +4,43 @@
 
 `docker logs frontend_chat --tail 20`
 
-`docker logs backend_chat --tail 30`
+`docker logs backend_chat --tail 40`
 
 ## DEMO 2: Replay Attack
 
 ```bash
 curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
   -H 'Content-Type: application/json' \
-  -H 'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ODQ0MTQ0YzllYjQ1MTM1ZmM2YjM1NyIsImlhdCI6MTc3MjU1MDAzMywiZXhwIjoxNzcyNjM2NDMzfQ.4qTgu1kfvYVrU5gHaAEuakPSiqPXR3uH8FWzl_M-7gE' \
+  -H 'Cookie: JWT_TOKEN' \
   --data '{
-    "roomId": "ROOM",
-    "content": "xin chào",
+    "roomId": "ROOM_ID",
+    "content": "chào",
     "type": "text",
     "nonce": "NONCE",
-    "eventTime": 1772550044,
+    "eventTime": TIME,
     "signature": "SIGN"
   }'
 ```
+
+//content PHẢI giống
 
 ## DEMO 3: Message Tampering
 
 ```bash
 curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
   -H 'Content-Type: application/json' \
-  -H 'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ODQ0MTQ0YzllYjQ1MTM1ZmM2YjM1NyIsImlhdCI6MTc3MjU1MDAzMywiZXhwIjoxNzcyNjM2NDMzfQ.4qTgu1kfvYVrU5gHaAEuakPSiqPXR3uH8FWzl_M-7gE' \
+  -H 'Cookie: JWT_TOKEN' \
   --data '{
-    "roomId": "69973f98b5d336734c827b87",
+    "roomId": "ROOM_ID",
     "content": "HACKED MESSAGE <script>alert(1)</script>",
     "type": "text",
-    "nonce": "cd3cc8b6c811a4a46ece1456e5e9c800",
-    "eventTime": '1772550743',
-    "signature": "11e58a9562c7fe6e07e8b68a0a9717db3afedce39ed420038c81460a1910bc32"
+    "nonce": "NONCE",
+    "eventTime": TIME,
+    "signature": "SIGN"
   }'
 ```
+
+//NONCE LUNG TUNG cũng được vì cứ sai 1 field = tạo sign khác
 
 ## DEMO 4: Verify Nonce trong Redis
 
@@ -50,7 +54,7 @@ AUTH mitsneredis
 KEYS chat:nonce:*
 
 # Check TTL (Time To Live)
-TTL chat:nonce:27db417198ce78969266f8e274afb4ed
+TTL chat:nonce:ID
 
 # Output: 58 (seconds remaining, max 60)
 ```
