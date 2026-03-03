@@ -157,7 +157,9 @@ async function verifyMessage(payload, redis) {
     }
 
     // 5. Store nonce with 60s TTL
-    await redis.setex(nonceKey, 60, eventTime.toString());
+    await redis.set(nonceKey, eventTime.toString(), {
+        EX: 60
+    });
     console.log('   [VERIFY] ✓ Nonce stored in Redis with 60s TTL:', nonceKey);
 
     return { valid: true };
