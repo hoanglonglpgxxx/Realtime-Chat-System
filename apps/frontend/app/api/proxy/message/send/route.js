@@ -46,8 +46,9 @@ function addHMACSignature(payload) {
         .digest('hex');
 
     console.log('[FRONTEND-PROXY] Adding HMAC to request');
-    console.log('[FRONTEND-PROXY] Nonce:', nonce.substring(0, 16) + '...');
-    console.log('[FRONTEND-PROXY] Signature:', signature.substring(0, 20) + '...');
+    console.log('[FRONTEND-PROXY] Nonce (full):', nonce);
+    console.log('[FRONTEND-PROXY] Signature (full):', signature);
+    console.log('[FRONTEND-PROXY] EventTime:', eventTime);
 
     return {
         ...messageToSign,
@@ -101,6 +102,9 @@ export async function POST(request) {
             targetUrl: targetUrl,
             hasSignature: !!signedBody.signature,
             hasNonce: !!signedBody.nonce,
+            signature: signedBody.signature || 'NOT PROVIDED',
+            nonce: signedBody.nonce || 'NOT PROVIDED',
+            eventTime: signedBody.eventTime || 'NOT PROVIDED',
         });
 
         const backendResponse = await fetch(targetUrl, {

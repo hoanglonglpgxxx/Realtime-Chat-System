@@ -19,8 +19,8 @@ exports.sendMessage = async (req, res) => {
         console.log('  - roomId:', roomId);
         console.log('  - content:', content);
         console.log('  - type:', type);
-        console.log('  - signature:', signature ? signature.substring(0, 20) + '...' : 'NOT PROVIDED');
-        console.log('  - nonce:', nonce ? nonce.substring(0, 16) + '...' : 'NOT PROVIDED');
+        console.log('  - signature (full):', signature || 'NOT PROVIDED');
+        console.log('  - nonce (full):', nonce || 'NOT PROVIDED');
         console.log('  - eventTime:', eventTime || 'NOT PROVIDED');
         console.log('  - Full body keys:', Object.keys(req.body));
 
@@ -94,7 +94,9 @@ exports.sendMessage = async (req, res) => {
         console.log('\n[BACKEND] Publishing to Redis channel: mits_chat_event');
         console.log('[BACKEND] Event type:', redisPayload.eventType);
         console.log('[BACKEND] Room ID:', roomId);
-        console.log('[BACKEND] HMAC signature:', redisPayload.signature.substring(0, 20) + '...');
+        console.log('[BACKEND] HMAC signature (full):', redisPayload.signature);
+        console.log('[BACKEND] Nonce (full):', redisPayload.nonce);
+        console.log('[BACKEND] EventTime:', redisPayload.eventTime);
 
         await redis.publish('mits_chat_event', JSON.stringify(redisPayload));
         console.log('[BACKEND] Published to Redis successfully');

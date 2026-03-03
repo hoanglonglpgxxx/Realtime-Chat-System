@@ -88,7 +88,9 @@ function signMessage(payload) {
 
     console.log('[HMAC-SIGN] Secret key (first 10 chars):', SECRET_KEY.substring(0, 10));
     console.log('[HMAC-SIGN] Canonical string (first 200 chars):', canonicalString.substring(0, 200));
-    console.log('[HMAC-SIGN] Generated signature:', signature.substring(0, 20) + '...');
+    console.log('[HMAC-SIGN] Generated signature (full):', signature);
+    console.log('[HMAC-SIGN] Nonce (full):', messageToSign.nonce);
+    console.log('[HMAC-SIGN] EventTime:', messageToSign.eventTime);
 
     return {
         ...messageToSign,
@@ -131,8 +133,10 @@ async function verifyMessage(payload, redis) {
         .update(canonicalString)
         .digest('hex');
 
-    console.log('[HMAC-VERIFY] Expected signature:', expectedSignature.substring(0, 20) + '...');
-    console.log('[HMAC-VERIFY] Received signature:', signature.substring(0, 20) + '...');
+    console.log('[HMAC-VERIFY] Expected signature (full):', expectedSignature);
+    console.log('[HMAC-VERIFY] Received signature (full):', signature);
+    console.log('[HMAC-VERIFY] Nonce (full):', nonce);
+    console.log('[HMAC-VERIFY] EventTime:', eventTime);
 
     if (signature !== expectedSignature) {
         return { valid: false, error: 'Invalid HMAC signature' };

@@ -52,8 +52,8 @@ function verifyHMAC(payload, receivedSignature, secret) {
             .update(canonicalString)
             .digest('hex');
 
-        console.log('[HMAC-VERIFY] Expected signature:', expectedSignature.substring(0, 20) + '...');
-        console.log('[HMAC-VERIFY] Received signature:', receivedSignature.substring(0, 20) + '...');
+        console.log('[HMAC-VERIFY] Expected signature (full):', expectedSignature);
+        console.log('[HMAC-VERIFY] Received signature (full):', receivedSignature);
         console.log('[HMAC-VERIFY] Signatures match:', expectedSignature === receivedSignature);
 
         return crypto.timingSafeEqual(

@@ -54,13 +54,13 @@ Paste vào terminal SSH VM1:
 ```bash
 curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
   -H 'Content-Type: application/json' \
-  -H 'Cookie: token=eyJhbGci...[PASTE_TOKEN_ĐÃ_COPY]' \
+  -H 'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ODQ0MTQ0YzllYjQ1MTM1ZmM2YjM1NyIsImlhdCI6MTc3MjUxODY5MCwiZXhwIjoxNzcyNjA1MDkwfQ.MkDljz19OAO3eDSsCHGFtlEltpSTWFAg7hSC_nOB2Kg' \
   --data '{
     "roomId": "699748dea8449ea60d32c4f6",
-    "content": "Demo for thesis",
+    "content": "Demo replay attack",
     "type": "text",
     "nonce": "a7f3e9c1b2d4f5e6c8a9b0d1e2f34567",
-    "eventTime": 1771595915,
+    "eventTime": 1772518757724,
     "signature": "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c..."
   }'
 ```
