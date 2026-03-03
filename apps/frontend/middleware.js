@@ -7,7 +7,7 @@ export function middleware(request) {
     const isDashboard = request.nextUrl.pathname.startsWith('/dashboard');
     const isLoginPage = request.nextUrl.pathname === '/login';
 
-    console.log('🔒 Middleware:', {
+    console.log('Middleware:', {
         path: request.nextUrl.pathname,
         hasToken: !!token,
         isChatPage,

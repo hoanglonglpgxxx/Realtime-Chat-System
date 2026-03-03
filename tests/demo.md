@@ -11,125 +11,46 @@
 ```bash
 curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
   -H 'Content-Type: application/json' \
-  -H 'Cookie: COOKIE' \
+  -H 'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ODQ0MTQ0YzllYjQ1MTM1ZmM2YjM1NyIsImlhdCI6MTc3MjU1MDAzMywiZXhwIjoxNzcyNjM2NDMzfQ.4qTgu1kfvYVrU5gHaAEuakPSiqPXR3uH8FWzl_M-7gE' \
   --data '{
-    "roomId": "ROOM_ID",
-    "content": "Demo replay attack",
+    "roomId": "ROOM",
+    "content": "xin chào",
     "type": "text",
-    "nonce": "NONCE_VAL",
-    "eventTime": EVENT_TIME,
-    "signature": "SIGNATURE"
+    "nonce": "NONCE",
+    "eventTime": 1772550044,
+    "signature": "SIGN"
   }'
 ```
 
-### **Kết quả mong đợi:**
-
-❌ **BLOCKED:**
-
-```json
-{
-  "message": "Unauthorized!",
-  "error": "Nonce already used (replay attack detected)"
-}
-```
-
-### **Giải thích:**
-
-- Request đầu tiên → Backend lưu `nonce` vào Redis (TTL 60s)
-- Request thứ 2 (replay) → Backend check nonce đã tồn tại → **Chặn!**
-
-### **Step 3.5: Check Backend Logs - Replay Detected**
-
-```bash
-docker logs backend_chat --tail 20
-
-# Tìm đoạn:
-# [MESSAGE-SEND] 🔐 HMAC fields present, verifying...
-# [HMAC-VERIFY] Received signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
-# [HMAC-VERIFY] Nonce (full): a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
-# [MESSAGE-SEND] ❌ HMAC verification failed: Nonce already used (replay attack detected)
-```
-
-### **📸 Screenshot 2:** Terminal showing 401 Unauthorized + error message + backend logs
-
----
-
-## 🛡️ DEMO 3: Message Tampering (1 phút)
-
-### **Step 4: Thử sửa nội dung giữ nguyên HMAC**
-
-Chạy curl với **content khác** nhưng **HMAC giữ nguyên**:
+## DEMO 3: Message Tampering
 
 ```bash
 curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
   -H 'Content-Type: application/json' \
-  -H 'Cookie: token=eyJhbGci...[SAME_TOKEN]' \
+  -H 'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ODQ0MTQ0YzllYjQ1MTM1ZmM2YjM1NyIsImlhdCI6MTc3MjU1MDAzMywiZXhwIjoxNzcyNjM2NDMzfQ.4qTgu1kfvYVrU5gHaAEuakPSiqPXR3uH8FWzl_M-7gE' \
   --data '{
-    "roomId": "699748dea8449ea60d32c4f6",
+    "roomId": "69973f98b5d336734c827b87",
     "content": "HACKED MESSAGE <script>alert(1)</script>",
     "type": "text",
-    "nonce": "NEW_NONCE_12345678901234567890abcd",
-    "eventTime": '$(date +%s)',
-    "signature": "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c..."
+    "nonce": "cd3cc8b6c811a4a46ece1456e5e9c800",
+    "eventTime": '1772550743',
+    "signature": "11e58a9562c7fe6e07e8b68a0a9717db3afedce39ed420038c81460a1910bc32"
   }'
 ```
 
-### **Kết quả mong đợi:**
-
-❌ **BLOCKED:**
-
-```json
-{
-  "message": "Unauthorized!",
-  "error": "Invalid HMAC signature"
-}
-```
-
-### **Giải thích:**
-
-- HMAC được tính từ: `roomId + content + nonce + eventTime`
-- Content thay đổi → HMAC không match → **Chặn!**
-
-### **Step 4.5: Check Backend Logs - Signature Mismatch**
-
-```bash
-docker logs backend_chat --tail 20
-
-# Tìm đoạn:
-# [MESSAGE-SEND] 🔐 HMAC fields present, verifying...
-# [HMAC-VERIFY] Expected signature (full): abc123def456... (calculated from new content)
-# [HMAC-VERIFY] Received signature (full): 9f8e7d6c5b4a3f2e... (old signature)
-# [MESSAGE-SEND] ❌ HMAC verification failed: Invalid HMAC signature
-```
-
-### **Giải thích chi tiết:**
-
-> "Backend tính toán lại HMAC signature dựa trên nội dung nhận được. Vì attacker đã sửa content nhưng giữ nguyên signature cũ, hai giá trị này không khớp → request bị chặn."
-
-### **📸 Screenshot 3:** Terminal showing HMAC verification failed + logs comparing signatures
-
----
-
-## 🔍 DEMO 4: Verify Nonce trong Redis (30 giây)
-
-### **Step 5: Check Redis**
+## DEMO 4: Verify Nonce trong Redis
 
 ```bash
 # SSH vào VM2 (hoặc từ VM1 if Redis is accessible)
-docker exec -it redis redis-cli -a your_password
+docker exec -it redis_chat redis-cli
+
+AUTH mitsneredis
 
 # Xem tất cả nonce đã lưu
 KEYS chat:nonce:*
 
-# Output:
-# 1) "chat:nonce:a7f3e9c1b2d4f5e6c8a9b0d1e2f34567"
-
 # Check TTL (Time To Live)
-TTL chat:nonce:a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
+TTL chat:nonce:27db417198ce78969266f8e274afb4ed
 
 # Output: 58 (seconds remaining, max 60)
 ```
-
-### **📸 Screenshot 4:** Redis CLI showing nonce with TTL
-
----

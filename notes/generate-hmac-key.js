@@ -14,7 +14,7 @@ const crypto = require('crypto');
 const secretKey = crypto.randomBytes(32).toString('hex');
 
 console.log('╔════════════════════════════════════════════════════════════════╗');
-console.log('║          🔐 HMAC Secret Key Generated Successfully            ║');
+console.log('║          HMAC Secret Key Generated Successfully                ║');
 console.log('╚════════════════════════════════════════════════════════════════╝');
 console.log('');
 console.log('Copy this line to your .env file:');
@@ -22,11 +22,6 @@ console.log('');
 console.log('┌────────────────────────────────────────────────────────────────┐');
 console.log(`│ HMAC_SECRET_KEY=${secretKey} │`);
 console.log('└────────────────────────────────────────────────────────────────┘');
-console.log('');
-console.log('⚠️  IMPORTANT:');
-console.log('  - Add this to .env on BOTH VM1 (apps) and VM2 (infrastructure)');
-console.log('  - Keep this secret secure, never commit to git');
-console.log('  - Use the same key across all services (backend + socket-bridge)');
 console.log('');
 
 // Also output as GitHub secret format

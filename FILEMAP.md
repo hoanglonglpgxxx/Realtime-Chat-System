@@ -223,34 +223,28 @@ Realtime-Chat-System/
 │
 ├── 📚 Documentation & Notes
 │   ├── notes/
-│   │   ├── DEFENSE_IN_DEPTH_DEMO.md   # ⭐ Security demo guide (4 scenarios)
-│   │   ├── QUICK_START_DEMO.md        # Quick reference for demo
-│   │   ├── REPLAY_ATTACK_DEFENSE.md   # Replay attack deep dive
-│   │   ├── MIGRATION_GUIDE.md         # Safe migration to LB (7 phases)
-│   │   ├── MIGRATION_QUICKREF.md      # Migration quick commands
-│   │   ├── MIGRATION_SUMMARY.md       # Migration overview
-│   │   ├── OPTION1_DEDICATED_LB.md    # LB setup option
-│   │   ├── OPTION2_CURRENT_SETUP.md   # Current setup enhancement
-│   │   ├── THESIS_RECOMMENDATION.md   # Academic analysis
-│   │   ├── QUICK_DECISION.md          # Decision matrix
+│   │   ├── generate-hmac-key.js       # HMAC key generation utility
 │   │   ├── HandleDBImage.md           # MongoDB setup notes
 │   │   ├── HandleRedisImage.md        # Redis setup notes
-│   │   ├── LOAD_BALANCER_SCALING_GUIDE.md # Scaling guide
-│   │   ├── REDIS_MONITORING_GUIDE.md  # Redis monitoring
 │   │   ├── NGINX_CONFIG_FOR_VM1.conf  # Nginx template
-│   │   ├── FIX_INVALID_NAMESPACE.md   # Bugfix notes
-│   │   ├── generate-hmac-key.js       # HMAC key generation
-│   │   └── (many more thesis-related files)
+│   │   └── QUICK_START_DEMO.md        # Quick deployment reference
 │   │
-│   └── 🧪 tests/                      # Testing suite
-│       ├── README.md                  # Test documentation
-│       ├── package.json               # Test dependencies
-│       ├── setup-demo.sh              # Demo setup script
-│       ├── run-all-scenarios.sh       # ⭐ Master test script
-│       ├── scenario1-network-isolation.sh  # Network test
-│       ├── scenario2-httponly-cookie.sh    # Cookie test
-│       ├── replay-attack-demo.js      # ⭐ Replay attack test (Node.js)
-│       └── .env                       # Test configuration
+│   └── 🎓 tests/                      # Thesis Demo & Testing
+│       ├── README.md                  # Test overview
+│       ├── QUICK_DEMO_SCRIPT.md       # ⭐ Manual demo script for thesis presentation
+│       ├── demo.md                    # Quick reference cheat sheet
+│       ├── VM_QUICKSTART.md           # VM setup instructions
+│       │
+│       └── 📁 Automated Scripts (Development Only - NOT for thesis presentation)
+│           ├── package.json               # Test dependencies
+│           ├── setup-demo.sh              # Automated setup
+│           ├── run-all-scenarios.sh       # CI/CD test runner
+│           ├── scenario1-network-isolation.sh
+│           ├── scenario2-httponly-cookie.sh
+│           ├── replay-attack-demo.js      # Automated replay test
+│           ├── tamper-attack-demo.sh
+│           ├── real-capture-demo.sh
+│           └── setup-vm-test-env.sh
 │
 └── 📋 Deployment Files (at root)
     ├── deploy-bk.md                   # Deployment backup notes
@@ -428,21 +422,31 @@ Production infrastructure configuration
 
 #### Documentation (`/notes/`)
 
-Project notes and guides
+Project notes and development guides
 
-- **DEFENSE_IN_DEPTH_DEMO.md**: Security testing scenarios
-- **REPLAY_ATTACK_DEFENSE.md**: Replay attack prevention guide
-- **MIGRATION_GUIDE.md**: Safe setup/scaling procedure
-- **THESIS_RECOMMENDATION.md**: Academic analysis
+- **generate-hmac-key.js**: Utility to generate HMAC secret keys
+- **HandleDBImage.md**: MongoDB Docker setup notes
+- **HandleRedisImage.md**: Redis Docker setup notes
+- **NGINX_CONFIG_FOR_VM1.conf**: Nginx configuration template
+- **QUICK_START_DEMO.md**: Quick deployment reference
 
-#### Testing (`/tests/`)
+#### Testing & Demo (`/tests/`)
 
-Automated security testing suite
+Thesis presentation guides and testing tools
 
-- **scenario1-network-isolation.sh**: Firewall & network tests
-- **scenario2-httponly-cookie.sh**: Session security tests
-- **replay-attack-demo.js**: Automated replay attack demo
-- **run-all-scenarios.sh**: Master test script
+**For Thesis Presentation (Manual Demo):**
+
+- **QUICK_DEMO_SCRIPT.md**: Comprehensive manual demo script (step-by-step)
+- **demo.md**: Quick reference cheat sheet for live demo
+- **VM_QUICKSTART.md**: VM setup and configuration guide
+- **README.md**: Testing overview and approach
+
+**Development/CI-CD Only (Automated Scripts):**
+
+- **replay-attack-demo.js**: Automated replay attack testing
+- **run-all-scenarios.sh**: CI/CD test runner
+- **scenario\*.sh**: Individual test scenario scripts
+- ⚠️ Note: Automated scripts are NOT used for thesis defense (manual demo required)
 
 ---
 
@@ -468,13 +472,15 @@ Automated security testing suite
 
 ### 📝 Documentation Files
 
-| File                             | Contains                        |
-| -------------------------------- | ------------------------------- |
-| `README.md`                      | Project overview & quick start  |
-| `GUIDE.md`                       | Architecture & detailed guide   |
-| `FILEMAP.md`                     | Directory structure (this file) |
-| `Dataflow.md`                    | Data flow diagrams              |
-| `notes/DEFENSE_IN_DEPTH_DEMO.md` | Security testing guide          |
+| File                         | Contains                          | Use Case               |
+| ---------------------------- | --------------------------------- | ---------------------- |
+| `README.md`                  | Project overview & quick start    | Initial setup          |
+| `GUIDE.md`                   | Architecture & detailed guide     | Deep understanding     |
+| `ARCHITECTURE.md`            | System architecture documentation | Security design        |
+| `FILEMAP.md`                 | Directory structure (this file)   | Navigation reference   |
+| `tests/QUICK_DEMO_SCRIPT.md` | Step-by-step manual demo guide    | Thesis presentation ⭐ |
+| `tests/demo.md`              | Quick reference cheat sheet       | Live demo quick lookup |
+| `tests/VM_QUICKSTART.md`     | VM setup instructions             | Infrastructure setup   |
 
 ---
 
@@ -524,12 +530,12 @@ Layer 4: Monitoring (SIEM - Wazuh)
 2. **Setup:** Follow `README.md` instructions
 3. **Understanding:** Check `FILEMAP.md` (this file)
 4. **Data Flow:** Review `Dataflow.md`
-5. **Security:** See `notes/DEFENSE_IN_DEPTH_DEMO.md`
-6. **Testing:** Run `tests/run-all-scenarios.sh`
+5. **Security:** See `ARCHITECTURE.md`
+6. **Thesis Demo:** Follow `tests/QUICK_DEMO_SCRIPT.md` for manual presentation
 
 ---
 
 **Generated:** February 20, 2026  
-**Last Updated:** February 20, 2026  
+**Last Updated:** March 3, 2026  
 **Format:** Standard Project File Map  
-**Version:** 2.0 (Standardized)
+**Version:** 2.1 (Updated for Thesis Presentation)

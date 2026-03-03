@@ -46,7 +46,6 @@ if (!SECRET_KEY) {
 }
 
 console.log('[BACKEND-HMAC] Secret Key loaded (first 10 chars):', SECRET_KEY.substring(0, 10));
-console.log('[BACKEND-HMAC] Secret Key source:', process.env.HMAC_SECRET_KEY ? 'ENV VAR' : 'AUTO-GENERATED or FALLBACK');
 
 /**
  * Sort object để đảm bảo canonical string nhất quán
@@ -114,10 +113,10 @@ async function verifyMessage(payload, redis) {
     const currentTime = Math.floor(Date.now() / 1000);
     const timeDiff = Math.abs(currentTime - eventTime);
     if (timeDiff > 120) {
-        console.log('   [VERIFY] ❌ Timestamp expired:', timeDiff, 'seconds');
+        console.log('   [VERIFY] Timestamp expired:', timeDiff, 'seconds');
         return { valid: false, error: `Timestamp expired (diff: ${timeDiff}s, max: 120s)` };
     }
-    console.log('   [VERIFY] ✓ Timestamp valid (diff:', timeDiff, 'seconds)');
+    console.log('   [VERIFY] Timestamp valid (diff:', timeDiff, 'seconds)');
 
     console.log('   [VERIFY] Step 2: Computing expected signature...');
     // 3. Verify HMAC signature
@@ -136,10 +135,10 @@ async function verifyMessage(payload, redis) {
 
     console.log('   [VERIFY] Expected:  ', expectedSignature);
     console.log('   [VERIFY] Received:  ', signature);
-    console.log('   [VERIFY] Match:', signature === expectedSignature ? '✓ YES' : '✗ NO');
+    console.log('   [VERIFY] Match:', signature === expectedSignature ? 'YES' : 'NO');
 
     if (signature !== expectedSignature) {
-        console.log('   [VERIFY] ❌ Signature mismatch!');
+        console.log('   [VERIFY] Signature mismatch!');
         return { valid: false, error: 'Invalid HMAC signature' };
     }
 
@@ -149,17 +148,17 @@ async function verifyMessage(payload, redis) {
     const nonceExists = await redis.get(nonceKey);
 
     if (nonceExists) {
-        console.log('   [VERIFY] ❌ Nonce already exists in Redis (Replay Attack!)');
+        console.log('   [VERIFY] Nonce already exists in Redis (Replay Attack!)');
         console.log('   [VERIFY] Nonce:', nonce);
         console.log('   [VERIFY] Previous use timestamp:', nonceExists);
         return { valid: false, error: 'Nonce already used (replay attack detected)' };
     }
 
-    // 5. Store nonce with 300s (5 minutes) TTL
+    // 5. Store nonce with 120s (2 minutes) TTL
     await redis.set(nonceKey, eventTime.toString(), {
-        EX: 300
+        EX: 120
     });
-    console.log('   [VERIFY] ✓ Nonce stored in Redis with 300s (5min) TTL:', nonceKey);
+    console.log('   [VERIFY] Nonce stored in Redis with 120s (2min) TTL:', nonceKey);
 
     return { valid: true };
 }

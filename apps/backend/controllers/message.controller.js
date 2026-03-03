@@ -14,7 +14,7 @@ exports.sendMessage = async (req, res) => {
         const { roomId, content, type = 'text', signature, nonce, eventTime } = req.body;
 
         console.log('\n========================================');
-        console.log('📥 [BACKEND] RECEIVED MESSAGE REQUEST');
+        console.log('[BACKEND] RECEIVED MESSAGE REQUEST');
         console.log('========================================');
         console.log('[BACKEND] Sender ID:', senderId);
         console.log('[BACKEND] Room ID:', roomId);
@@ -30,23 +30,23 @@ exports.sendMessage = async (req, res) => {
             return res.status(400).send({ message: "roomId and content are required" });
         }
 
-        // ⚠️ HMAC VERIFICATION (OPTIONAL FOR NOW - FOR DEBUGGING)
+        // HMAC VERIFICATION (OPTIONAL FOR NOW - FOR DEBUGGING)
         if (signature && nonce && eventTime) {
-            console.log('\n🔐 [BACKEND] VERIFYING HMAC SIGNATURE...');
+            console.log('\n[BACKEND] VERIFYING HMAC SIGNATURE...');
             const verificationResult = await verifyMessage(req.body, redis);
             if (!verificationResult.valid) {
-                console.log('❌ [BACKEND] HMAC VERIFICATION FAILED:', verificationResult.error);
+                console.log('[BACKEND] HMAC VERIFICATION FAILED:', verificationResult.error);
                 console.log('========================================\n');
                 return res.status(401).send({
                     message: "Unauthorized!",
                     error: verificationResult.error
                 });
             }
-            console.log('✅ [BACKEND] HMAC SIGNATURE VERIFIED!');
-            console.log('✅ [BACKEND] Nonce stored in Redis (TTL: 120s / 2min)');
+            console.log('[BACKEND] HMAC SIGNATURE VERIFIED!');
+            console.log('[BACKEND] Nonce stored in Redis (TTL: 120s / 2min)');
             console.log('========================================\n');
         } else {
-            console.log('\n⚠️  [BACKEND] No HMAC fields - processing without verification (DEBUG MODE)');
+            console.log('\n[BACKEND] No HMAC fields - processing without verification (DEBUG MODE)');
             console.log('========================================\n');
         }
 

@@ -2,8 +2,8 @@ const crypto = require('crypto');
 const { APP_SECRET_KEY, config } = require('../config.js');
 const { debugLog } = require('../utils.js');
 
-const NONCE_TTL_SECONDS = 60;
-const MAX_TIME_DIFF_SECONDS = 60;
+const NONCE_TTL_SECONDS = 120;
+const MAX_TIME_DIFF_SECONDS = 120;
 
 // Danh sách các event hợp lệ mà Express API được phép trigger
 const ALLOWED_EVENTS = [
