@@ -13,16 +13,18 @@ exports.sendMessage = async (req, res) => {
         const senderId = req.userId; // Từ auth middleware
         const { roomId, content, type = 'text', signature, nonce, eventTime } = req.body;
 
-        // 🔍 DEBUG LOGGING
-        console.log('[MESSAGE-SEND] 📥 Received request:');
-        console.log('  - senderId:', senderId);
-        console.log('  - roomId:', roomId);
-        console.log('  - content:', content);
-        console.log('  - type:', type);
-        console.log('  - signature (full):', signature || 'NOT PROVIDED');
-        console.log('  - nonce (full):', nonce || 'NOT PROVIDED');
-        console.log('  - eventTime:', eventTime || 'NOT PROVIDED');
-        console.log('  - Full body keys:', Object.keys(req.body));
+        console.log('\n========================================');
+        console.log('📥 [BACKEND] RECEIVED MESSAGE REQUEST');
+        console.log('========================================');
+        console.log('[BACKEND] Sender ID:', senderId);
+        console.log('[BACKEND] Room ID:', roomId);
+        console.log('[BACKEND] Content:', content?.substring(0, 50) + '...');
+        console.log('[BACKEND] Has HMAC fields:', !!(signature && nonce && eventTime));
+        if (signature && nonce && eventTime) {
+            console.log('[BACKEND] Nonce (32 chars):', nonce);
+            console.log('[BACKEND] Signature (64 chars):', signature);
+            console.log('[BACKEND] EventTime:', eventTime);
+        }
 
         if (!roomId || !content) {
             return res.status(400).send({ message: "roomId and content are required" });
@@ -30,18 +32,22 @@ exports.sendMessage = async (req, res) => {
 
         // ⚠️ HMAC VERIFICATION (OPTIONAL FOR NOW - FOR DEBUGGING)
         if (signature && nonce && eventTime) {
-            console.log('[MESSAGE-SEND] 🔐 HMAC fields present, verifying...');
+            console.log('\n🔐 [BACKEND] VERIFYING HMAC SIGNATURE...');
             const verificationResult = await verifyMessage(req.body, redis);
             if (!verificationResult.valid) {
-                console.log('[MESSAGE-SEND] ❌ HMAC verification failed:', verificationResult.error);
+                console.log('❌ [BACKEND] HMAC VERIFICATION FAILED:', verificationResult.error);
+                console.log('========================================\n');
                 return res.status(401).send({
                     message: "Unauthorized!",
                     error: verificationResult.error
                 });
             }
-            console.log('[MESSAGE-SEND] ✅ HMAC verified, nonce stored');
+            console.log('✅ [BACKEND] HMAC SIGNATURE VERIFIED!');
+            console.log('✅ [BACKEND] Nonce stored in Redis (TTL: 60s)');
+            console.log('========================================\n');
         } else {
-            console.log('[MESSAGE-SEND] ⚠️  No HMAC fields - processing without verification (DEBUG MODE)');
+            console.log('\n⚠️  [BACKEND] No HMAC fields - processing without verification (DEBUG MODE)');
+            console.log('========================================\n');
         }
 
         // Kiểm tra room có tồn tại và user có trong room không

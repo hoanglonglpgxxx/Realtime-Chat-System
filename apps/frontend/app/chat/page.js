@@ -86,14 +86,11 @@ export default function ChatPage() {
                 console.log('[FRONTEND] Match:', currentRoom && messageRoomId === currentRoom._id);
 
                 if (currentRoom && messageRoomId === currentRoom._id) {
-                    console.log('[FRONTEND] Room matched! Adding message to UI');
                     setMessages(prev => {
-                        // Avoid duplicates
                         if (prev.some(m => m._id === data.message._id)) {
                             console.log('[FRONTEND] Duplicate message, skipping');
                             return prev;
                         }
-                        console.log('[FRONTEND] Message appended to state');
                         return [...prev, data.message];
                     });
                 } else {
@@ -279,7 +276,7 @@ export default function ChatPage() {
         <div className="flex h-screen bg-[#0F0F0F] text-gray-200 font-sans overflow-hidden">
 
             {/* --- SIDEBAR (Contacts) --- */}
-            <div className="w-80 bg-[#1A1A1A] flex flex-col border-r border-[#2A2A2A]">
+            <div className="w-[25rem] bg-[#1A1A1A] flex flex-col border-r border-[#2A2A2A]">
                 {/* Header Sidebar */}
                 <div className="p-5 border-b border-[#2A2A2A]">
                     {/* User Profile */}
@@ -291,7 +288,7 @@ export default function ChatPage() {
                         />
                         <div className="flex-1">
                             <h3 className="font-semibold text-md">{user?.fullName || user?.username || "User"}</h3>
-                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <p className="text-md text-gray-500 flex items-center gap-1">
                                 <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                                 {socketConnected ? 'Online' : 'Offline'}
                             </p>
@@ -349,7 +346,7 @@ export default function ChatPage() {
                                     <h3 className="text-gray-200 font-medium text-md truncate">
                                         {contact.fullName || contact.username}
                                     </h3>
-                                    <p className="text-xs text-gray-500 truncate">
+                                    <p className="text-md text-gray-500 truncate">
                                         @{contact.username}
                                     </p>
                                 </div>
@@ -386,7 +383,7 @@ export default function ChatPage() {
                                     <h3 className="font-semibold text-base">
                                         {getOtherUser(selectedRoom)?.fullName || getOtherUser(selectedRoom)?.username}
                                     </h3>
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-md text-gray-500">
                                         @{getOtherUser(selectedRoom)?.username}
                                     </span>
                                 </div>
@@ -433,7 +430,7 @@ export default function ChatPage() {
                                                         </div>
                                                     ) : (
                                                         <div className={`px-4 py-2.5 text-md rounded-2xl shadow-md ${isMe
-                                                            ? "bg-[#D4AF37] text-black rounded-br-sm font-medium"
+                                                            ? "bg-[#D4AF37] text-black rounded-br-sm"
                                                             : "bg-[#1A1A1A] text-gray-200 rounded-bl-sm border border-[#2A2A2A]"
                                                             }`}>
                                                             {msg.content}
@@ -489,7 +486,7 @@ export default function ChatPage() {
                             </form>
 
                             {/* Socket Status */}
-                            <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                            <div className="mt-2 flex items-center gap-2 text-md text-gray-500">
                                 <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
                                 <span>{socketConnected ? 'Connected to server' : 'Disconnected'}</span>
                             </div>

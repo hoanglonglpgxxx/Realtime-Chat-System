@@ -11,7 +11,7 @@ export default function Input({ label, error, ...props }) {
         `}
         {...props}
       />
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-md text-red-500">{error}</span>}
     </div>
   );
 }

@@ -29,8 +29,17 @@ function addHMACSignature(payload) {
         throw new Error('HMAC_SECRET_KEY not configured');
     }
 
+    console.log('\n========================================');
+    console.log('🔐 [FRONTEND] GENERATING HMAC SIGNATURE');
+    console.log('========================================');
+    console.log('[FRONTEND] Secret Key Source: ENV VAR');
+    console.log('[FRONTEND] Secret Key (first 10 chars):', SECRET_KEY.substring(0, 10) + '...');
+
     const nonce = crypto.randomBytes(16).toString('hex');
     const eventTime = Math.floor(Date.now() / 1000);
+
+    console.log('[FRONTEND] ✅ Generated Nonce (32 chars):', nonce);
+    console.log('[FRONTEND] ✅ EventTime (Unix timestamp):', eventTime);
 
     const messageToSign = {
         ...payload,
@@ -41,14 +50,18 @@ function addHMACSignature(payload) {
     const sortedData = sortObject(messageToSign);
     const canonicalString = JSON.stringify(sortedData).replace(/\//g, '\\/');
 
+    console.log('[FRONTEND] 📝 Canonical String (first 150 chars):', canonicalString.substring(0, 150) + '...');
+
     const signature = crypto.createHmac('sha256', SECRET_KEY)
         .update(canonicalString)
         .digest('hex');
 
-    console.log('[FRONTEND-PROXY] Adding HMAC to request');
-    console.log('[FRONTEND-PROXY] Nonce (full):', nonce);
-    console.log('[FRONTEND-PROXY] Signature (full):', signature);
-    console.log('[FRONTEND-PROXY] EventTime:', eventTime);
+    console.log('[FRONTEND] ✅ Generated Signature (64 chars):', signature);
+    console.log('[FRONTEND] 📦 HMAC Package Ready:');
+    console.log('           - Nonce:     ', nonce);
+    console.log('           - Signature: ', signature);
+    console.log('           - EventTime: ', eventTime);
+    console.log('========================================\n');
 
     return {
         ...messageToSign,
@@ -83,29 +96,27 @@ export async function POST(request) {
         let signedBody = body;
         try {
             if (process.env.HMAC_SECRET_KEY) {
-                console.log('[MESSAGE-PROXY] 🔐 HMAC_SECRET_KEY found, adding signature...');
                 signedBody = addHMACSignature(body);
-                console.log('[MESSAGE-PROXY] ✅ HMAC added successfully');
             } else {
-                console.log('[MESSAGE-PROXY] ⚠️  HMAC_SECRET_KEY not configured, sending without HMAC');
+                console.log('\n⚠️  [FRONTEND] HMAC_SECRET_KEY not configured');
+                console.log('⚠️  [FRONTEND] Sending request WITHOUT HMAC protection\n');
             }
         } catch (hmacError) {
-            console.error('[MESSAGE-PROXY] ⚠️  HMAC generation failed:', hmacError.message);
-            console.log('[MESSAGE-PROXY] Continuing without HMAC...');
+            console.error('\n❌ [FRONTEND] HMAC generation failed:', hmacError.message);
+            console.log('⚠️  [FRONTEND] Continuing without HMAC...\n');
         }
 
         const backendUrl = process.env.BE_URL;
         const targetUrl = `${backendUrl}/api/v1/messages/send`;
 
-        console.log('[MESSAGE-PROXY] 📤 Sending to backend:', {
-            BE_URL: backendUrl,
-            targetUrl: targetUrl,
-            hasSignature: !!signedBody.signature,
-            hasNonce: !!signedBody.nonce,
-            signature: signedBody.signature || 'NOT PROVIDED',
-            nonce: signedBody.nonce || 'NOT PROVIDED',
-            eventTime: signedBody.eventTime || 'NOT PROVIDED',
-        });
+        console.log('📤 [FRONTEND] Sending to Backend:', targetUrl);
+        console.log('   Room ID:', body.roomId);
+        console.log('   Content:', body.content?.substring(0, 50) + '...');
+        console.log('   Has HMAC:', !!signedBody.signature);
+        if (signedBody.signature) {
+            console.log('   Nonce (first 16):', signedBody.nonce.substring(0, 16) + '...');
+            console.log('   Signature (first 16):', signedBody.signature.substring(0, 16) + '...');
+        }
 
         const backendResponse = await fetch(targetUrl, {
             method: 'POST',
@@ -117,6 +128,14 @@ export async function POST(request) {
         });
 
         const data = await backendResponse.json();
+
+        if (backendResponse.status === 201 && signedBody.signature) {
+            console.log('\n✅ [FRONTEND] Message sent successfully with HMAC protection');
+            console.log('✅ [FRONTEND] Backend verified signature and stored nonce in Redis');
+            console.log('========================================\n');
+        } else if (backendResponse.status === 201) {
+            console.log('\n✅ [FRONTEND] Message sent (without HMAC)\n');
+        }
 
         console.log('[MESSAGE-PROXY] 📨 Backend response:', {
             status: backendResponse.status,

@@ -86,11 +86,9 @@ function signMessage(payload) {
         .update(canonicalString)
         .digest('hex');
 
-    console.log('[HMAC-SIGN] Secret key (first 10 chars):', SECRET_KEY.substring(0, 10));
-    console.log('[HMAC-SIGN] Canonical string (first 200 chars):', canonicalString.substring(0, 200));
-    console.log('[HMAC-SIGN] Generated signature (full):', signature);
-    console.log('[HMAC-SIGN] Nonce (full):', messageToSign.nonce);
-    console.log('[HMAC-SIGN] EventTime:', messageToSign.eventTime);
+    console.log('[BACKEND-SIGN] Generated Nonce:', nonce);
+    console.log('[BACKEND-SIGN] Generated Signature:', signature);
+    console.log('[BACKEND-SIGN] EventTime:', eventTime);
 
     return {
         ...messageToSign,
@@ -112,13 +110,17 @@ async function verifyMessage(payload, redis) {
         return { valid: false, error: 'Missing signature, nonce, or eventTime' };
     }
 
+    console.log('   [VERIFY] Step 1: Checking timestamp...');
     // 2. Check timestamp (±60 seconds tolerance)
     const currentTime = Math.floor(Date.now() / 1000);
     const timeDiff = Math.abs(currentTime - eventTime);
     if (timeDiff > 60) {
+        console.log('   [VERIFY] ❌ Timestamp expired:', timeDiff, 'seconds');
         return { valid: false, error: `Timestamp expired (diff: ${timeDiff}s, max: 60s)` };
     }
+    console.log('   [VERIFY] ✓ Timestamp valid (diff:', timeDiff, 'seconds)');
 
+    console.log('   [VERIFY] Step 2: Computing expected signature...');
     // 3. Verify HMAC signature
     const messageToVerify = {
         ...data,
@@ -133,27 +135,30 @@ async function verifyMessage(payload, redis) {
         .update(canonicalString)
         .digest('hex');
 
-    console.log('[HMAC-VERIFY] Expected signature (full):', expectedSignature);
-    console.log('[HMAC-VERIFY] Received signature (full):', signature);
-    console.log('[HMAC-VERIFY] Nonce (full):', nonce);
-    console.log('[HMAC-VERIFY] EventTime:', eventTime);
+    console.log('   [VERIFY] Expected:  ', expectedSignature);
+    console.log('   [VERIFY] Received:  ', signature);
+    console.log('   [VERIFY] Match:', signature === expectedSignature ? '✓ YES' : '✗ NO');
 
     if (signature !== expectedSignature) {
+        console.log('   [VERIFY] ❌ Signature mismatch!');
         return { valid: false, error: 'Invalid HMAC signature' };
     }
 
+    console.log('   [VERIFY] Step 3: Checking nonce uniqueness in Redis...');
     // 4. Check nonce uniqueness (replay attack prevention)
     const nonceKey = `chat:nonce:${nonce}`;
     const nonceExists = await redis.get(nonceKey);
 
     if (nonceExists) {
+        console.log('   [VERIFY] ❌ Nonce already exists in Redis (Replay Attack!)');
+        console.log('   [VERIFY] Nonce:', nonce);
+        console.log('   [VERIFY] Previous use timestamp:', nonceExists);
         return { valid: false, error: 'Nonce already used (replay attack detected)' };
     }
 
     // 5. Store nonce with 60s TTL
     await redis.setex(nonceKey, 60, eventTime.toString());
-
-    console.log('[HMAC-VERIFY] ✅ Signature valid, nonce stored:', nonceKey);
+    console.log('   [VERIFY] ✓ Nonce stored in Redis with 60s TTL:', nonceKey);
 
     return { valid: true };
 }

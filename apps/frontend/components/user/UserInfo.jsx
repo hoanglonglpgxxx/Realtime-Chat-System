@@ -45,7 +45,7 @@ function UserInfo() {
             {user.roles.map((role, index) => (
               <span
                 key={index}
-                className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full"
+                className="px-2 py-0.5 text-md bg-blue-100 text-blue-800 rounded-full"
               >
                 {role.replace("ROLE_", "")}
               </span>
