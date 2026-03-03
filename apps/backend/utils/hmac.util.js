@@ -111,12 +111,11 @@ async function verifyMessage(payload, redis) {
     }
 
     console.log('   [VERIFY] Step 1: Checking timestamp...');
-    // 2. Check timestamp (±60 seconds tolerance)
     const currentTime = Math.floor(Date.now() / 1000);
     const timeDiff = Math.abs(currentTime - eventTime);
-    if (timeDiff > 60) {
+    if (timeDiff > 120) {
         console.log('   [VERIFY] ❌ Timestamp expired:', timeDiff, 'seconds');
-        return { valid: false, error: `Timestamp expired (diff: ${timeDiff}s, max: 60s)` };
+        return { valid: false, error: `Timestamp expired (diff: ${timeDiff}s, max: 120s)` };
     }
     console.log('   [VERIFY] ✓ Timestamp valid (diff:', timeDiff, 'seconds)');
 
@@ -156,11 +155,11 @@ async function verifyMessage(payload, redis) {
         return { valid: false, error: 'Nonce already used (replay attack detected)' };
     }
 
-    // 5. Store nonce with 60s TTL
+    // 5. Store nonce with 300s (5 minutes) TTL
     await redis.set(nonceKey, eventTime.toString(), {
-        EX: 60
+        EX: 300
     });
-    console.log('   [VERIFY] ✓ Nonce stored in Redis with 60s TTL:', nonceKey);
+    console.log('   [VERIFY] ✓ Nonce stored in Redis with 300s (5min) TTL:', nonceKey);
 
     return { valid: true };
 }

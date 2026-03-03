@@ -127,7 +127,7 @@ curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
 
 ### **Giải thích:**
 
-- Request đầu tiên → Backend lưu `nonce` vào Redis (TTL 60s)
+- Request đầu tiên → Backend lưu `nonce` vào Redis (TTL 120s / 2 phút)
 - Request thứ 2 (replay) → Backend check nonce đã tồn tại → **Chặn!**
 
 ### **Step 3.5: Check Frontend Logs - Forwarding Replay**
@@ -233,7 +233,7 @@ KEYS chat:nonce:*
 # Check TTL (Time To Live)
 TTL chat:nonce:a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
 
-# Output: 58 (seconds remaining, max 60)
+# Output: 295 (seconds remaining, max 300 = 5 minutes)
 ```
 
 ### **📸 Screenshot 4:** Redis CLI showing nonce with TTL
@@ -242,12 +242,12 @@ TTL chat:nonce:a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
 
 ## 📊 Summary Table (Cho slide)
 
-| **Test Case**     | **Method**          | **Result**         | **Reason**                  |
-| ----------------- | ------------------- | ------------------ | --------------------------- |
-| Normal Message    | Browser send        | ✅ **200 OK**      | Valid HMAC, unique nonce    |
-| Replay Attack     | Same curl 2nd time  | ❌ **401 Blocked** | Nonce already used          |
-| Message Tampering | Change content      | ❌ **401 Blocked** | HMAC signature mismatch     |
-| Timestamp Expired | eventTime > 60s old | ❌ **401 Blocked** | Timestamp validation failed |
+| **Test Case**     | **Method**           | **Result**         | **Reason**                  |
+| ----------------- | -------------------- | ------------------ | --------------------------- |
+| Normal Message    | Browser send         | ✅ **200 OK**      | Valid HMAC, unique nonce    |
+| Replay Attack     | Same curl 2nd time   | ❌ **401 Blocked** | Nonce already used          |
+| Message Tampering | Change content       | ❌ **401 Blocked** | HMAC signature mismatch     |
+| Timestamp Expired | eventTime > 5min old | ❌ **401 Blocked** | Timestamp validation failed |
 
 ---
 
@@ -288,7 +288,7 @@ TTL chat:nonce:a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
 
 ### **Khi show Redis:**
 
-> "Mỗi nonce được lưu trong Redis với TTL 60 giây. Sau 60 giây, nonce tự động bị xóa. Điều này ngăn chặn replay attack trong cửa sổ thời gian cho phép."
+> "Mỗi nonce được lưu trong Redis với TTL 300 giây (5 phút). Sau 5 phút, nonce tự động bị xóa. Điều này ngăn chặn replay attack trong cửa sổ thời gian cho phép và giảm memory footprint."
 
 ---
 
@@ -487,15 +487,16 @@ docker exec -it redis redis-cli -a [PASSWORD] PING
 | HMAC generation time | 3-5ms |
 | HMAC verification time | 3-5ms |
 | Redis nonce lookup | < 2ms |
+| Nonce TTL in Redis | 300s (5 minutes) |
 | Total overhead | < 10ms |
 | Detection rate | 100% (0 false negatives) |
 | False positive rate | 0% |
 
 **Conclusion:**  
-The HMAC + Nonce mechanism successfully prevents replay attacks with 100% detection rate and minimal performance overhead (< 10ms per request).
+The HMAC + Nonce mechanism successfully prevents replay attacks with 100% detection rate and minimal performance overhead (< 10ms per request). Nonces are stored in Redis with 5-minute TTL to prevent replay within the time window.
 
 ---
 
-**📅 Last Updated:** February 20, 2026  
+**📅 Last Updated:** March 3, 2026  
 **⏱️ Demo Duration:** 5 minutes  
 **🎯 Difficulty:** Medium (requires basic understanding of HTTP, HMAC)

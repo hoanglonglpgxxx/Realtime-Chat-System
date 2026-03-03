@@ -43,7 +43,7 @@ exports.sendMessage = async (req, res) => {
                 });
             }
             console.log('✅ [BACKEND] HMAC SIGNATURE VERIFIED!');
-            console.log('✅ [BACKEND] Nonce stored in Redis (TTL: 60s)');
+            console.log('✅ [BACKEND] Nonce stored in Redis (TTL: 120s / 2min)');
             console.log('========================================\n');
         } else {
             console.log('\n⚠️  [BACKEND] No HMAC fields - processing without verification (DEBUG MODE)');

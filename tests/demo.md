@@ -1,16 +1,12 @@
 # DEMO STEP
 
-## DEMO 2: Gửi tin
+## DEMO 1: Gửi tin
 
 `docker logs frontend_chat --tail 20`
 
 `docker logs backend_chat --tail 30`
 
-## �🔴 DEMO 2: Replay Attack (2 phút)
-
-### **Step 3: Tạo curl command**
-
-Paste vào terminal SSH VM1:
+## DEMO 2: Replay Attack
 
 ```bash
 curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
