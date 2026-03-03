@@ -50,7 +50,7 @@ function DashboardPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-gray-900">Phòng Chat</h3>
-                                        <p className="text-sm text-gray-600">Trò chuyện realtime</p>
+                                        <p className="text-md text-gray-600">Trò chuyện realtime</p>
                                     </div>
                                 </div>
                             </div>
@@ -66,7 +66,7 @@ function DashboardPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-900">Hồ Sơ</h3>
-                                    <p className="text-sm text-gray-600">Coming soon...</p>
+                                    <p className="text-md text-gray-600">Coming soon...</p>
                                 </div>
                             </div>
                         </div>
@@ -82,7 +82,7 @@ function DashboardPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-900">Cài Đặt</h3>
-                                    <p className="text-sm text-gray-600">Coming soon...</p>
+                                    <p className="text-md text-gray-600">Coming soon...</p>
                                 </div>
                             </div>
                         </div>
@@ -96,7 +96,7 @@ function DashboardPage() {
                         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">Tin nhắn hôm nay</p>
+                                    <p className="text-md text-gray-600">Tin nhắn hôm nay</p>
                                     <p className="text-2xl font-bold text-gray-900 mt-1">0</p>
                                 </div>
                                 <div className="p-3 bg-green-100 rounded-lg">
@@ -110,7 +110,7 @@ function DashboardPage() {
                         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">Phòng chat</p>
+                                    <p className="text-md text-gray-600">Phòng chat</p>
                                     <p className="text-2xl font-bold text-gray-900 mt-1">3</p>
                                 </div>
                                 <div className="p-3 bg-blue-100 rounded-lg">
@@ -124,7 +124,7 @@ function DashboardPage() {
                         <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-600">Online</p>
+                                    <p className="text-md text-gray-600">Online</p>
                                     <p className="text-2xl font-bold text-gray-900 mt-1">1</p>
                                 </div>
                                 <div className="p-3 bg-purple-100 rounded-lg">
@@ -137,20 +137,12 @@ function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Info Box */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                     <div className="flex items-start gap-4">
                         <div className="p-2 bg-blue-100 rounded-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-blue-900 mb-1">Chuẩn bị tích hợp Socket.IO</h3>
-                            <p className="text-sm text-blue-800">
-                                Hệ thống đã sẵn sàng cho việc tích hợp Socket.IO để chat realtime.
-                                Xem file <code className="bg-blue-100 px-2 py-1 rounded">notes/JWT_AUTH_GUIDE.md</code> để biết thêm chi tiết.
-                            </p>
                         </div>
                     </div>
                 </div>

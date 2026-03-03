@@ -290,7 +290,7 @@ export default function ChatPage() {
                             className="w-10 h-10 rounded-full border-2 border-[#D4AF37]"
                         />
                         <div className="flex-1">
-                            <h3 className="font-semibold text-sm">{user?.fullName || user?.username || "User"}</h3>
+                            <h3 className="font-semibold text-md">{user?.fullName || user?.username || "User"}</h3>
                             <p className="text-xs text-gray-500 flex items-center gap-1">
                                 <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                                 {socketConnected ? 'Online' : 'Offline'}
@@ -322,7 +322,7 @@ export default function ChatPage() {
                     )}
 
                     {!loading && users.length === 0 && (
-                        <div className="text-center py-4 text-gray-500 text-sm">
+                        <div className="text-center py-4 text-gray-500 text-md">
                             Chưa có user nào. <br />Hãy đăng ký thêm tài khoản để chat!
                         </div>
                     )}
@@ -346,7 +346,7 @@ export default function ChatPage() {
                                     />
                                 </div>
                                 <div className="ml-3 flex-1 min-w-0">
-                                    <h3 className="text-gray-200 font-medium text-sm truncate">
+                                    <h3 className="text-gray-200 font-medium text-md truncate">
                                         {contact.fullName || contact.username}
                                     </h3>
                                     <p className="text-xs text-gray-500 truncate">
@@ -396,7 +396,7 @@ export default function ChatPage() {
                         {/* Messages List */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-[#0F0F0F] to-[#121212]">
                             {messages.length === 0 ? (
-                                <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+                                <div className="flex items-center justify-center h-full text-gray-500 text-md">
                                     Chưa có tin nhắn. Hãy gửi tin nhắn đầu tiên!
                                 </div>
                             ) : (
@@ -432,7 +432,7 @@ export default function ChatPage() {
                                                             />
                                                         </div>
                                                     ) : (
-                                                        <div className={`px-4 py-2.5 text-sm rounded-2xl shadow-md ${isMe
+                                                        <div className={`px-4 py-2.5 text-md rounded-2xl shadow-md ${isMe
                                                             ? "bg-[#D4AF37] text-black rounded-br-sm font-medium"
                                                             : "bg-[#1A1A1A] text-gray-200 rounded-bl-sm border border-[#2A2A2A]"
                                                             }`}>
@@ -450,7 +450,7 @@ export default function ChatPage() {
 
                         {/* Typing Indicator */}
                         {typingUsers.size > 0 && (
-                            <div className="px-6 py-2 text-sm text-gray-400 italic bg-[#0F0F0F]">
+                            <div className="px-6 py-2 text-md text-gray-400 italic bg-[#0F0F0F]">
                                 <div className="flex items-center gap-2">
                                     <div className="flex gap-1">
                                         <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>

@@ -66,7 +66,7 @@ const Navbar = () => {
         {/* User section */}
         <div className="navbar-user">
           {loading ? (
-            <div className="text-sm text-gray-500">Loading...</div>
+            <div className="text-md text-gray-500">Loading...</div>
           ) : isAuthenticated ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ const Navbar = () => {
                     className="w-8 h-8 rounded-full border-2 border-white"
                   />
                 )}
-                <span className="text-sm font-medium text-white">
+                <span className="text-md font-medium text-white">
                   {user?.fullName || user?.username}
                 </span>
               </div>
@@ -86,7 +86,7 @@ const Navbar = () => {
                   setIsOpen(false);
                   logout();
                 }}
-                className="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                className="px-3 py-1 text-md bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
               >
                 Logout
               </button>

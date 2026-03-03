@@ -45,7 +45,50 @@ signature:  9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c... (64 chars)
 
 ---
 
-## 🔴 DEMO 2: Replay Attack (2 phút)
+## � DEMO 1.5: Xem Logs chi tiết Nonce & Signature (1 phút)
+
+### **Step 2.5: Check Frontend Proxy Logs**
+
+Xem logs khi frontend proxy **generate HMAC**:
+
+```bash
+# SSH vào VM1
+docker logs frontend_chat --tail 20
+
+# Tìm đoạn:
+# [FRONTEND-PROXY] Adding HMAC to request
+# [FRONTEND-PROXY] Nonce (full): a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
+# [FRONTEND-PROXY] Signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
+```
+
+### **Step 2.6: Check Backend Logs**
+
+Xem logs khi backend **verify HMAC**:
+
+```bash
+# SSH vào VM1
+docker logs backend_chat --tail 30
+
+# Tìm đoạn:
+# [MESSAGE-SEND] 📥 Received request:
+#   - signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
+#   - nonce (full): a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
+#   - eventTime: 1772518757
+# [MESSAGE-SEND] 🔐 HMAC fields present, verifying...
+# [HMAC-VERIFY] Expected signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
+# [HMAC-VERIFY] Received signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
+# [MESSAGE-SEND] ✅ HMAC verified, nonce stored
+```
+
+### **Giải thích cho slide:**
+
+> "Logs cho thấy quá trình end-to-end: Frontend tạo nonce và HMAC signature, Backend nhận và verify thành công, sau đó lưu nonce vào Redis để chặn replay attack."
+
+### **📸 Screenshot 1.5:** Terminal showing both frontend and backend logs with matching nonce/signature
+
+---
+
+## �🔴 DEMO 2: Replay Attack (2 phút)
 
 ### **Step 3: Tạo curl command**
 
@@ -81,7 +124,19 @@ curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
 - Request đầu tiên → Backend lưu `nonce` vào Redis (TTL 60s)
 - Request thứ 2 (replay) → Backend check nonce đã tồn tại → **Chặn!**
 
-### **📸 Screenshot 2:** Terminal showing 401 Unauthorized + error message
+### **Step 3.5: Check Backend Logs - Replay Detected**
+
+```bash
+docker logs backend_chat --tail 20
+
+# Tìm đoạn:
+# [MESSAGE-SEND] 🔐 HMAC fields present, verifying...
+# [HMAC-VERIFY] Received signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
+# [HMAC-VERIFY] Nonce (full): a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
+# [MESSAGE-SEND] ❌ HMAC verification failed: Nonce already used (replay attack detected)
+```
+
+### **📸 Screenshot 2:** Terminal showing 401 Unauthorized + error message + backend logs
 
 ---
 
@@ -121,7 +176,23 @@ curl -X POST 'http://35.193.42.199:8029/api/proxy/message/send' \
 - HMAC được tính từ: `roomId + content + nonce + eventTime`
 - Content thay đổi → HMAC không match → **Chặn!**
 
-### **📸 Screenshot 3:** Terminal showing HMAC verification failed
+### **Step 4.5: Check Backend Logs - Signature Mismatch**
+
+```bash
+docker logs backend_chat --tail 20
+
+# Tìm đoạn:
+# [MESSAGE-SEND] 🔐 HMAC fields present, verifying...
+# [HMAC-VERIFY] Expected signature (full): abc123def456... (calculated from new content)
+# [HMAC-VERIFY] Received signature (full): 9f8e7d6c5b4a3f2e... (old signature)
+# [MESSAGE-SEND] ❌ HMAC verification failed: Invalid HMAC signature
+```
+
+### **Giải thích chi tiết:**
+
+> "Backend tính toán lại HMAC signature dựa trên nội dung nhận được. Vì attacker đã sửa content nhưng giữ nguyên signature cũ, hai giá trị này không khớp → request bị chặn."
+
+### **📸 Screenshot 3:** Terminal showing HMAC verification failed + logs comparing signatures
 
 ---
 
@@ -165,17 +236,19 @@ TTL chat:nonce:a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
 ### **Must-have cho thesis:**
 
 - [ ] **SS1:** Browser Network tab - POST request thành công (200 OK)
+- [ ] **SS1.5:** Terminal logs - Frontend proxy generating HMAC + Backend verifying successfully
 - [ ] **SS2:** DevTools Payload tab - showing nonce, eventTime, signature
-- [ ] **SS3:** Terminal - Replay attack blocked (401)
-- [ ] **SS4:** Terminal - Tampered message blocked (401)
+- [ ] **SS3:** Terminal - Replay attack blocked (401) + Backend logs showing nonce reuse detected
+- [ ] **SS4:** Terminal - Tampered message blocked (401) + Backend logs showing signature mismatch
 - [ ] **SS5:** Redis CLI - nonce tracking with TTL
-- [ ] **SS6:** Backend code - HMAC verification logic
+- [ ] **SS6:** Backend code - HMAC verification logic (hmac.util.js)
+- [ ] **SS7:** Frontend code - HMAC generation logic (proxy/message/send/route.js)
 
 ### **Optional (bonus):**
 
-- [ ] Wireshark packet capture
-- [ ] Backend logs showing "HMAC verified"
-- [ ] Frontend proxy logs showing "Adding HMAC"
+- [ ] Wireshark packet capture showing encrypted traffic
+- [ ] Side-by-side comparison: Expected vs Received signature in logs
+- [ ] Timeline diagram showing nonce lifecycle (generate → verify → store → expire)
 
 ---
 
@@ -214,7 +287,58 @@ TTL chat:nonce:a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
 
 ---
 
-## 🚨 Troubleshooting
+## � Quick Commands - Monitor Logs Real-time
+
+### **Option 1: Follow logs trong khi demo (Recommended)**
+
+Mở 2 terminal riêng và chạy:
+
+```bash
+# Terminal 1 - Frontend logs
+docker logs -f frontend_chat | grep -E "FRONTEND-PROXY|HMAC"
+
+# Terminal 2 - Backend logs
+docker logs -f backend_chat | grep -E "MESSAGE-SEND|HMAC-VERIFY|HMAC-SIGN"
+```
+
+### **Option 2: Xem logs sau mỗi request**
+
+```bash
+# Frontend (20 dòng cuối)
+docker logs frontend_chat --tail 20 | grep -A5 "FRONTEND-PROXY"
+
+# Backend (30 dòng cuối)
+docker logs backend_chat --tail 30 | grep -A5 "MESSAGE-SEND"
+```
+
+### **Option 3: Export logs ra file để screenshot**
+
+```bash
+# Export frontend logs
+docker logs frontend_chat > frontend_hmac.log 2>&1
+
+# Export backend logs
+docker logs backend_chat > backend_hmac.log 2>&1
+
+# Sau đó mở file bằng text editor để capture screenshot
+cat frontend_hmac.log | grep -A10 "HMAC"
+cat backend_hmac.log | grep -A10 "HMAC-VERIFY"
+```
+
+### **Log Patterns để tìm:**
+
+| Component       | Pattern to Search                  | What to Look For                  |
+| --------------- | ---------------------------------- | --------------------------------- |
+| Frontend Proxy  | `[FRONTEND-PROXY] Nonce`           | Nonce generation                  |
+| Frontend Proxy  | `[FRONTEND-PROXY] Signature`       | HMAC signature created            |
+| Backend Receive | `[MESSAGE-SEND] 📥 Received`       | Request received with HMAC fields |
+| Backend Verify  | `[HMAC-VERIFY] Expected signature` | Signature comparison              |
+| Backend Success | `✅ HMAC verified`                 | Verification passed               |
+| Backend Blocked | `❌ HMAC verification failed`      | Attack detected                   |
+
+---
+
+## �🚨 Troubleshooting
 
 ### **Nếu DEMO 2 KHÔNG bị chặn (200 OK instead of 401):**
 

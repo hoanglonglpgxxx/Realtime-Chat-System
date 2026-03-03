@@ -20,7 +20,7 @@ function UserInfo() {
   if (!user) {
     return (
       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <p className="text-yellow-800 text-sm">Bạn chưa đăng nhập</p>
+        <p className="text-yellow-800 text-md">Bạn chưa đăng nhập</p>
       </div>
     );
   }
@@ -39,7 +39,7 @@ function UserInfo() {
         <h3 className="font-semibold text-gray-900 text-lg">
           {user.fullName || user.username}
         </h3>
-        <p className="text-gray-600 text-sm">{user.email}</p>
+        <p className="text-gray-600 text-md">{user.email}</p>
         {user.roles && user.roles.length > 0 && (
           <div className="flex gap-1 mt-1">
             {user.roles.map((role, index) => (
@@ -55,7 +55,7 @@ function UserInfo() {
       </div>
       <button
         onClick={logout}
-        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
+        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-md font-medium rounded-lg transition-colors"
       >
         Đăng xuất
       </button>
