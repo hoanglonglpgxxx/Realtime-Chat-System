@@ -28,6 +28,7 @@ services:
     environment:
       - BE_URL=${BE_URL}
       - SOCKET_URL=${SOCKET_URL}
+      - HMAC_SECRET_KEY=${HMAC_SECRET_KEY}
     ports:
       - "127.0.0.1:${FE_PORT}:3000"
     restart: always

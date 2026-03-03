@@ -1,60 +1,10 @@
 # DEMO STEP
 
-## 🎯 DEMO 1: Gửi tin nhắn bình thường (1 phút)
+## DEMO 2: Gửi tin
 
-### **Step 1: Gửi message từ browser**
+`docker logs frontend_chat --tail 20`
 
-1. Gõ message: **"Demo for thesis"**
-2. Click **Send**
-3. ✅ Message hiển thị → Thành công!
-
-### **Step 2: Capture request trong DevTools**
-
-5. Tab **Headers** → Request Headers
-6. Copy: `Cookie: token=eyJhbGci...`
-
-## � DEMO 1.5: Xem Logs chi tiết Nonce & Signature (1 phút)
-
-### **Step 2.5: Check Frontend Proxy Logs**
-
-Xem logs khi frontend proxy **generate HMAC**:
-
-```bash
-# SSH vào VM1
-docker logs frontend_chat --tail 20
-
-# Tìm đoạn:
-# [FRONTEND-PROXY] Adding HMAC to request
-# [FRONTEND-PROXY] Nonce (full): a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
-# [FRONTEND-PROXY] Signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
-```
-
-### **Step 2.6: Check Backend Logs**
-
-Xem logs khi backend **verify HMAC**:
-
-```bash
-# SSH vào VM1
-docker logs backend_chat --tail 30
-
-# Tìm đoạn:
-# [MESSAGE-SEND] 📥 Received request:
-#   - signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
-#   - nonce (full): a7f3e9c1b2d4f5e6c8a9b0d1e2f34567
-#   - eventTime: 1772518757
-# [MESSAGE-SEND] 🔐 HMAC fields present, verifying...
-# [HMAC-VERIFY] Expected signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
-# [HMAC-VERIFY] Received signature (full): 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c...
-# [MESSAGE-SEND] ✅ HMAC verified, nonce stored
-```
-
-### **Giải thích cho slide:**
-
-> "Logs cho thấy quá trình end-to-end: Frontend tạo nonce và HMAC signature, Backend nhận và verify thành công, sau đó lưu nonce vào Redis để chặn replay attack."
-
-### **📸 Screenshot 1.5:** Terminal showing both frontend and backend logs with matching nonce/signature
-
----
+`docker logs backend_chat --tail 30`
 
 ## �🔴 DEMO 2: Replay Attack (2 phút)
 
