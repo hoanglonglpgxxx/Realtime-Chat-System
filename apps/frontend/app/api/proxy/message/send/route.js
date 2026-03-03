@@ -114,8 +114,8 @@ export async function POST(request) {
         console.log('   Content:', body.content?.substring(0, 50) + '...');
         console.log('   Has HMAC:', !!signedBody.signature);
         if (signedBody.signature) {
-            console.log('   Nonce (first 16):', signedBody.nonce.substring(0, 16) + '...');
-            console.log('   Signature (first 16):', signedBody.signature.substring(0, 16) + '...');
+            console.log('   Nonce (full 32 chars):', signedBody.nonce);
+            console.log('   Signature (full 64 chars):', signedBody.signature);
         }
 
         const backendResponse = await fetch(targetUrl, {

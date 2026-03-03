@@ -276,7 +276,7 @@ export default function ChatPage() {
         <div className="flex h-screen bg-[#0F0F0F] text-gray-200 font-sans overflow-hidden">
 
             {/* --- SIDEBAR (Contacts) --- */}
-            <div className="w-[25rem] bg-[#1A1A1A] flex flex-col border-r border-[#2A2A2A]">
+            <div className="w-[40rem] bg-[#1A1A1A] flex flex-col border-r border-[#2A2A2A]">
                 {/* Header Sidebar */}
                 <div className="p-5 border-b border-[#2A2A2A]">
                     {/* User Profile */}
